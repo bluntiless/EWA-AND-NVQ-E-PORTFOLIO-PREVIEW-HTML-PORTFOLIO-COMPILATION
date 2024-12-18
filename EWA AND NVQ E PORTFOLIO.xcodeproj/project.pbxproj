@@ -1,0 +1,563 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		325D41082D13287800E41085 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 325D40EF2D13287700E41085 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 325D40F62D13287700E41085;
+			remoteInfo = "EWA AND NVQ E PORTFOLIO";
+		};
+		325D41122D13287800E41085 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 325D40EF2D13287700E41085 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 325D40F62D13287700E41085;
+			remoteInfo = "EWA AND NVQ E PORTFOLIO";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		325D40F72D13287700E41085 /* EWA AND NVQ E PORTFOLIO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "EWA AND NVQ E PORTFOLIO.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		325D41072D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "EWA AND NVQ E PORTFOLIOTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		325D41112D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "EWA AND NVQ E PORTFOLIOUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		325D40F92D13287700E41085 /* EWA AND NVQ E PORTFOLIO */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "EWA AND NVQ E PORTFOLIO";
+			sourceTree = "<group>";
+		};
+		325D410A2D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "EWA AND NVQ E PORTFOLIOTests";
+			sourceTree = "<group>";
+		};
+		325D41142D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "EWA AND NVQ E PORTFOLIOUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		325D40F42D13287700E41085 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		325D41042D13287800E41085 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		325D410E2D13287800E41085 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		325D40EE2D13287700E41085 = {
+			isa = PBXGroup;
+			children = (
+				325D40F92D13287700E41085 /* EWA AND NVQ E PORTFOLIO */,
+				325D410A2D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests */,
+				325D41142D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests */,
+				325D40F82D13287700E41085 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		325D40F82D13287700E41085 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				325D40F72D13287700E41085 /* EWA AND NVQ E PORTFOLIO.app */,
+				325D41072D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests.xctest */,
+				325D41112D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		325D40F62D13287700E41085 /* EWA AND NVQ E PORTFOLIO */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 325D411B2D13287800E41085 /* Build configuration list for PBXNativeTarget "EWA AND NVQ E PORTFOLIO" */;
+			buildPhases = (
+				325D40F32D13287700E41085 /* Sources */,
+				325D40F42D13287700E41085 /* Frameworks */,
+				325D40F52D13287700E41085 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				325D40F92D13287700E41085 /* EWA AND NVQ E PORTFOLIO */,
+			);
+			name = "EWA AND NVQ E PORTFOLIO";
+			packageProductDependencies = (
+			);
+			productName = "EWA AND NVQ E PORTFOLIO";
+			productReference = 325D40F72D13287700E41085 /* EWA AND NVQ E PORTFOLIO.app */;
+			productType = "com.apple.product-type.application";
+		};
+		325D41062D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 325D411E2D13287800E41085 /* Build configuration list for PBXNativeTarget "EWA AND NVQ E PORTFOLIOTests" */;
+			buildPhases = (
+				325D41032D13287800E41085 /* Sources */,
+				325D41042D13287800E41085 /* Frameworks */,
+				325D41052D13287800E41085 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				325D41092D13287800E41085 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				325D410A2D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests */,
+			);
+			name = "EWA AND NVQ E PORTFOLIOTests";
+			packageProductDependencies = (
+			);
+			productName = "EWA AND NVQ E PORTFOLIOTests";
+			productReference = 325D41072D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		325D41102D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 325D41212D13287800E41085 /* Build configuration list for PBXNativeTarget "EWA AND NVQ E PORTFOLIOUITests" */;
+			buildPhases = (
+				325D410D2D13287800E41085 /* Sources */,
+				325D410E2D13287800E41085 /* Frameworks */,
+				325D410F2D13287800E41085 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				325D41132D13287800E41085 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				325D41142D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests */,
+			);
+			name = "EWA AND NVQ E PORTFOLIOUITests";
+			packageProductDependencies = (
+			);
+			productName = "EWA AND NVQ E PORTFOLIOUITests";
+			productReference = 325D41112D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		325D40EF2D13287700E41085 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1610;
+				LastUpgradeCheck = 1610;
+				TargetAttributes = {
+					325D40F62D13287700E41085 = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					325D41062D13287800E41085 = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = 325D40F62D13287700E41085;
+					};
+					325D41102D13287800E41085 = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = 325D40F62D13287700E41085;
+					};
+				};
+			};
+			buildConfigurationList = 325D40F22D13287700E41085 /* Build configuration list for PBXProject "EWA AND NVQ E PORTFOLIO" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 325D40EE2D13287700E41085;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 325D40F82D13287700E41085 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				325D40F62D13287700E41085 /* EWA AND NVQ E PORTFOLIO */,
+				325D41062D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests */,
+				325D41102D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		325D40F52D13287700E41085 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		325D41052D13287800E41085 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		325D410F2D13287800E41085 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		325D40F32D13287700E41085 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		325D41032D13287800E41085 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		325D410D2D13287800E41085 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		325D41092D13287800E41085 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 325D40F62D13287700E41085 /* EWA AND NVQ E PORTFOLIO */;
+			targetProxy = 325D41082D13287800E41085 /* PBXContainerItemProxy */;
+		};
+		325D41132D13287800E41085 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 325D40F62D13287700E41085 /* EWA AND NVQ E PORTFOLIO */;
+			targetProxy = 325D41122D13287800E41085 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		325D41192D13287800E41085 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		325D411A2D13287800E41085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		325D411C2D13287800E41085 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"EWA AND NVQ E PORTFOLIO/Preview Content\"";
+				DEVELOPMENT_TEAM = A7WFGL4W3V;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIO";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		325D411D2D13287800E41085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"EWA AND NVQ E PORTFOLIO/Preview Content\"";
+				DEVELOPMENT_TEAM = A7WFGL4W3V;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIO";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		325D411F2D13287800E41085 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A7WFGL4W3V;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIOTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EWA AND NVQ E PORTFOLIO.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/EWA AND NVQ E PORTFOLIO";
+			};
+			name = Debug;
+		};
+		325D41202D13287800E41085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A7WFGL4W3V;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIOTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EWA AND NVQ E PORTFOLIO.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/EWA AND NVQ E PORTFOLIO";
+			};
+			name = Release;
+		};
+		325D41222D13287800E41085 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A7WFGL4W3V;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIOUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "EWA AND NVQ E PORTFOLIO";
+			};
+			name = Debug;
+		};
+		325D41232D13287800E41085 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A7WFGL4W3V;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIOUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "EWA AND NVQ E PORTFOLIO";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		325D40F22D13287700E41085 /* Build configuration list for PBXProject "EWA AND NVQ E PORTFOLIO" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				325D41192D13287800E41085 /* Debug */,
+				325D411A2D13287800E41085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		325D411B2D13287800E41085 /* Build configuration list for PBXNativeTarget "EWA AND NVQ E PORTFOLIO" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				325D411C2D13287800E41085 /* Debug */,
+				325D411D2D13287800E41085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		325D411E2D13287800E41085 /* Build configuration list for PBXNativeTarget "EWA AND NVQ E PORTFOLIOTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				325D411F2D13287800E41085 /* Debug */,
+				325D41202D13287800E41085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		325D41212D13287800E41085 /* Build configuration list for PBXNativeTarget "EWA AND NVQ E PORTFOLIOUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				325D41222D13287800E41085 /* Debug */,
+				325D41232D13287800E41085 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 325D40EF2D13287700E41085 /* Project object */;
+}
