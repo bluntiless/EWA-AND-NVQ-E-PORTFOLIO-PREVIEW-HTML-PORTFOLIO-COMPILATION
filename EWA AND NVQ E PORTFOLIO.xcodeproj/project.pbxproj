@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		32367D3E2D14D99B0012D6E5 /* MSAL in Frameworks */ = {isa = PBXBuildFile; productRef = 32367D3D2D14D99B0012D6E5 /* MSAL */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		325D41082D13287800E41085 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +33,22 @@
 		325D41112D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "EWA AND NVQ E PORTFOLIOUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		32367D412D14E0670012D6E5 /* Exceptions for "EWA AND NVQ E PORTFOLIO" folder in "EWA AND NVQ E PORTFOLIO" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 325D40F62D13287700E41085 /* EWA AND NVQ E PORTFOLIO */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		325D40F92D13287700E41085 /* EWA AND NVQ E PORTFOLIO */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				32367D412D14E0670012D6E5 /* Exceptions for "EWA AND NVQ E PORTFOLIO" folder in "EWA AND NVQ E PORTFOLIO" target */,
+			);
 			path = "EWA AND NVQ E PORTFOLIO";
 			sourceTree = "<group>";
 		};
@@ -52,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				32367D3E2D14D99B0012D6E5 /* MSAL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,12 +90,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		32367D3C2D14D99B0012D6E5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		325D40EE2D13287700E41085 = {
 			isa = PBXGroup;
 			children = (
 				325D40F92D13287700E41085 /* EWA AND NVQ E PORTFOLIO */,
 				325D410A2D13287800E41085 /* EWA AND NVQ E PORTFOLIOTests */,
 				325D41142D13287800E41085 /* EWA AND NVQ E PORTFOLIOUITests */,
+				32367D3C2D14D99B0012D6E5 /* Frameworks */,
 				325D40F82D13287700E41085 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -112,6 +138,7 @@
 			);
 			name = "EWA AND NVQ E PORTFOLIO";
 			packageProductDependencies = (
+				32367D3D2D14D99B0012D6E5 /* MSAL */,
 			);
 			productName = "EWA AND NVQ E PORTFOLIO";
 			productReference = 325D40F72D13287700E41085 /* EWA AND NVQ E PORTFOLIO.app */;
@@ -195,6 +222,9 @@
 			);
 			mainGroup = 325D40EE2D13287700E41085;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				32367D3B2D14D9830012D6E5 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 325D40F82D13287700E41085 /* Products */;
 			projectDirPath = "";
@@ -323,6 +353,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				LSApplicationQueriesSchemes = "msauthv2 msauthv3";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -380,6 +411,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				LSApplicationQueriesSchemes = "msauthv2 msauthv3";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -393,12 +425,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "EWA AND NVQ E PORTFOLIO/EWA AND NVQ E PORTFOLIO.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"EWA AND NVQ E PORTFOLIO/Preview Content\"";
 				DEVELOPMENT_TEAM = A7WFGL4W3V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "EWA-AND-NVQ-E-PORTFOLIO-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -408,8 +444,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LSApplicationQueriesSchemes = "";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIO";
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.waynewright.ewa-nvq-portfolio1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -422,12 +460,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "EWA AND NVQ E PORTFOLIO/EWA AND NVQ E PORTFOLIO.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"EWA AND NVQ E PORTFOLIO/Preview Content\"";
 				DEVELOPMENT_TEAM = A7WFGL4W3V;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "EWA-AND-NVQ-E-PORTFOLIO-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -437,8 +479,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				LSApplicationQueriesSchemes = "";
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.wayne.EWA-AND-NVQ-E-PORTFOLIO";
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.waynewright.ewa-nvq-portfolio1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -558,6 +602,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		32367D3B2D14D9830012D6E5 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AzureAD/microsoft-authentication-library-for-objc";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		32367D3D2D14D99B0012D6E5 /* MSAL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 32367D3B2D14D9830012D6E5 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */;
+			productName = MSAL;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 325D40EF2D13287700E41085 /* Project object */;
 }
