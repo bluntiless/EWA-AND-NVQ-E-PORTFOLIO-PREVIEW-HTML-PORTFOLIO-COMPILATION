@@ -2,32 +2,48 @@ import SwiftUI
 
 struct PortfolioView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
-    @EnvironmentObject var qualificationStore: QualificationStore
-    @State private var showingUploadSheet = false
-    @State private var selectedEvidenceType: Evidence.EvidenceType = .photo
     @State private var selectedEvidence: Evidence?
     @State private var showingPreview = false
     
+    var uploadedEvidence: [Evidence] {
+        let evidence = evidenceManager.evidenceItems.filter { $0.isUploaded }
+        print("Total evidence items: \(evidenceManager.evidenceItems.count)")
+        print("Uploaded evidence items: \(evidence.count)")
+        print("Evidence items status:")
+        evidenceManager.evidenceItems.forEach { item in
+            print("- ID: \(item.id)")
+            print("  SharePoint URL: \(item.sharePointUrl ?? "None")")
+            print("  Is Locally Uploaded: \(item.isLocallyUploaded)")
+            print("  Is Uploaded: \(item.isUploaded)")
+        }
+        return evidence
+    }
+    
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
-                Section(header: Text("Evidence Collection")) {
-                    NavigationLink {
-                        EvidenceUploadContainerView(
-                            evidenceManager: evidenceManager
-                        )
-                    } label: {
+                Section(header: Text("EVIDENCE COLLECTION")) {
+                    NavigationLink(destination: EvidenceUploadContainerView(
+                        criteriaCode: "General",
+                        unitCode: "ALL",
+                        criteriaDescription: "General Evidence Upload",
+                        onEvidenceUploaded: { evidence in
+                            evidenceManager.addEvidence(evidence)
+                        }
+                    ).environmentObject(evidenceManager)) {
                         Label("Upload Evidence", systemImage: "square.and.arrow.up")
                     }
                 }
                 
-                Section(header: Text("Uploaded Evidence")) {
-                    if evidenceManager.evidenceItems.isEmpty {
+                Section(header: Text("UPLOADED EVIDENCE")) {
+                    if evidenceManager.isLoading {
+                        ProgressView()
+                    } else if uploadedEvidence.isEmpty {
                         Text("No evidence uploaded")
                             .foregroundColor(.secondary)
                             .italic()
                     } else {
-                        ForEach(evidenceManager.evidenceItems) { evidence in
+                        ForEach(uploadedEvidence) { evidence in
                             Button {
                                 selectedEvidence = evidence
                                 showingPreview = true
@@ -37,22 +53,25 @@ struct PortfolioView: View {
                         }
                     }
                 }
-                .onAppear {
+                .onChange(of: evidenceManager.lastUploadTimestamp) { _ in
                     Task {
                         await evidenceManager.loadInitialData()
+                        await evidenceManager.refreshEvidenceStatus()
                     }
                 }
-                .refreshable {
-                    await evidenceManager.loadInitialData()
-                }
                 
-                Section(header: Text("Progress")) {
+                Section(header: Text("PROGRESS")) {
                     NavigationLink(destination: ProgressDetailView()) {
                         Label("View Progress", systemImage: "chart.bar")
                     }
                 }
             }
             .navigationTitle("Portfolio")
+            .refreshable {
+                print("Manual refresh triggered")
+                await evidenceManager.loadInitialData()
+                await evidenceManager.refreshEvidenceStatus()
+            }
             .sheet(isPresented: $showingPreview) {
                 if let evidence = selectedEvidence {
                     NavigationStack {
@@ -69,9 +88,30 @@ struct PortfolioView: View {
                     }
                 }
             }
+            .onAppear {
+                Task {
+                    print("PortfolioView appeared - Loading initial data")
+                    await evidenceManager.loadInitialData()
+                    await evidenceManager.refreshEvidenceStatus()
+                }
+            }
+            .onChange(of: showingPreview) { isShowing in
+                if !isShowing {  // When preview is dismissed
+                    Task {
+                        await evidenceManager.refreshEvidenceStatus()
+                    }
+                }
+            }
+            .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+                Task {
+                    await evidenceManager.refreshEvidenceStatus()
+                }
+            }
         }
         .task {
+            print("PortfolioView appeared - Loading initial data")
             await evidenceManager.loadInitialData()
+            await evidenceManager.refreshEvidenceStatus()
         }
     }
 } 

@@ -1,29 +1,26 @@
 import SwiftUI
 
 struct EvidenceUploadContainerView: View {
-    @ObservedObject var evidenceManager: EvidenceManager
-    @State private var selectedEvidenceType: Evidence.EvidenceType = .photo
+    @EnvironmentObject var evidenceManager: EvidenceManager
+    let criteriaCode: String
+    let unitCode: String
+    let criteriaDescription: String
+    let onEvidenceUploaded: (Evidence) -> Void
     
     var body: some View {
-        VStack {
-            Picker("Evidence Type", selection: $selectedEvidenceType) {
-                Text("Photo").tag(Evidence.EvidenceType.photo)
-                Text("Video").tag(Evidence.EvidenceType.video)
-                Text("Document").tag(Evidence.EvidenceType.document)
-            }
-            .pickerStyle(.segmented)
-            .padding()
-            
-            EvidenceUploadView(
-                criteriaCode: "PC1",
-                unitCode: "UNIT1",
-                criteriaDescription: "Performance Criteria 1",
-                evidenceType: selectedEvidenceType,
-                onEvidenceUploaded: { evidence in
-                    evidenceManager.addEvidence(evidence)
+        List {
+            ForEach(Evidence.EvidenceType.allCases, id: \.self) { type in
+                NavigationLink(destination: EvidenceUploadView(
+                    evidenceType: type,
+                    criteriaCode: criteriaCode,
+                    unitCode: unitCode,
+                    criteriaDescription: criteriaDescription,
+                    onEvidenceUploaded: onEvidenceUploaded
+                )) {
+                    Label(type.rawValue, systemImage: type.iconName)
                 }
-            )
+            }
         }
-        .navigationTitle("Upload Evidence")
+        .navigationTitle("Select Evidence Type")
     }
 } 

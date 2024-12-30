@@ -1,30 +1,35 @@
 import SwiftUI
 import PhotosUI
-import AVKit
-import Photos
-import Foundation
+import PDFKit
 import UniformTypeIdentifiers
 
 struct EvidenceUploadView: View {
-    let criteriaCode: String
-    let unitCode: String
-    let criteriaDescription: String
-    let evidenceType: Evidence.EvidenceType
-    let onEvidenceUploaded: (Evidence) -> Void
+    @EnvironmentObject var evidenceManager: EvidenceManager
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var teamsManager = TeamsManager.shared
     
+    // State variables
     @State private var title = ""
     @State private var description = ""
+    @State private var selectedImage: UIImage?
+    @State private var selectedPDF: PDFDocument?
     @State private var selectedDocumentURLs: [URL] = []
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var selectedVideoItems: [PhotosPickerItem] = []
+    @State private var isShowingImagePicker = false
+    @State private var isShowingDocumentPicker = false
     @State private var showingDocumentPicker = false
     @State private var showingError = false
-    @State private var errorMessage = ""
     @State private var isUploading = false
-    @State private var evidenceItems: [Evidence] = []
+    @State private var showError = false
+    @State private var errorMessage = ""
     
-    @StateObject private var teamsManager = TeamsManager.shared
-    @Environment(\.dismiss) private var dismiss
+    // Properties
+    let evidenceType: Evidence.EvidenceType
+    let criteriaCode: String
+    let unitCode: String
+    let criteriaDescription: String
+    let onEvidenceUploaded: (Evidence) -> Void
     
     var body: some View {
         Form {
@@ -70,7 +75,7 @@ struct EvidenceUploadView: View {
                             .foregroundColor(.white)
                             .cornerRadius(10)
                     }
-                    .onChange(of: selectedPhotoItems) { oldValue, newValue in
+                    .onChange(of: selectedPhotoItems) { _, newValue in
                         for item in newValue {
                             handlePhotoSelection(item)
                         }
@@ -107,7 +112,7 @@ struct EvidenceUploadView: View {
                     ) {
                         Label("Select Videos", systemImage: "video")
                     }
-                    .onChange(of: selectedVideoItems) { oldValue, newValue in
+                    .onChange(of: selectedVideoItems) { _, newValue in
                         for item in newValue {
                             handleVideoSelection(item)
                         }
@@ -119,13 +124,22 @@ struct EvidenceUploadView: View {
                     }) {
                         Label("Select Documents", systemImage: "doc")
                     }
+                    
+                case .audio:
+                    Button(action: {
+                        // Audio selection action
+                    }) {
+                        Label("Select Audio", systemImage: "music.note")
+                    }
                 }
             }
             
             if !selectedDocumentURLs.isEmpty {
                 Button(action: {
                     Task {
-                        await handleMultipleUploads()
+                        if let url = selectedDocumentURLs.first {
+                            await uploadEvidence(fileURL: url, title: title, description: description)
+                        }
                     }
                 }) {
                     if isUploading {
@@ -134,7 +148,7 @@ struct EvidenceUploadView: View {
                         Text("Upload \(selectedDocumentURLs.count) Files")
                     }
                 }
-                .disabled(isUploading)
+                .disabled(isUploading || !canUpload)
             }
         }
         .navigationTitle("Upload \(evidenceType.rawValue.capitalized)")
@@ -163,38 +177,12 @@ struct EvidenceUploadView: View {
         }
     }
     
-    private func handleFileSelection(_ url: URL) {
-        do {
-            let bookmarkData = try url.bookmarkData()
-            var newEvidence = Evidence(
-                criteriaCode: criteriaCode,
-                unitCode: unitCode,
-                type: evidenceType,
-                title: title,
-                description: description,
-                criteriaDescription: criteriaDescription
-            )
-            newEvidence.setBookmarkData(bookmarkData)
-            newEvidence.setFileURL(url)
-            self.evidenceItems.append(newEvidence)
-            self.selectedDocumentURLs.append(url)
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
-        }
-    }
-    
-    private func setupViewController() {
-        DispatchQueue.main.async {
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootViewController = windowScene.windows.first?.rootViewController {
-                teamsManager.setPresentingViewController(rootViewController)
-            }
-        }
-    }
-    
     private var canUpload: Bool {
-        !title.isEmpty && !description.isEmpty && !selectedDocumentURLs.isEmpty
+        !selectedDocumentURLs.isEmpty  // Only check if files are selected
+    }
+    
+    private func handleFileSelection(_ url: URL) {
+        selectedDocumentURLs.append(url)
     }
     
     private func handlePhotoSelection(_ item: PhotosPickerItem) {
@@ -239,21 +227,46 @@ struct EvidenceUploadView: View {
         }
     }
     
-    private func handleMultipleUploads() async {
+    private func setupViewController() {
+        DispatchQueue.main.async {
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootViewController = windowScene.windows.first?.rootViewController {
+                teamsManager.setPresentingViewController(rootViewController)
+            }
+        }
+    }
+    
+    private func uploadEvidence(fileURL: URL, title: String, description: String) async {
         isUploading = true
         defer { isUploading = false }
         
         do {
-            if !evidenceItems.isEmpty {
-                let uploadedEvidence = try await teamsManager.uploadMultipleToSharePoint(evidenceItems: evidenceItems)
-                for evidence in uploadedEvidence {
-                    onEvidenceUploaded(evidence)
-                }
+            let bookmarkData = try fileURL.bookmarkData()
+            
+            let evidence = Evidence(
+                criteriaCode: criteriaCode,
+                unitCode: unitCode,
+                type: evidenceType,
+                title: title,
+                description: description,
+                bookmarkData: bookmarkData,
+                fileURL: fileURL,
+                associatedCriteria: [criteriaCode],
+                criteriaDescription: criteriaDescription
+            )
+            
+            try await evidenceManager.uploadEvidence(evidence)
+            onEvidenceUploaded(evidence)
+            
+            await MainActor.run {
                 dismiss()
             }
         } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
+            print("Upload error: \(error)")
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                showingError = true
+            }
         }
     }
 }

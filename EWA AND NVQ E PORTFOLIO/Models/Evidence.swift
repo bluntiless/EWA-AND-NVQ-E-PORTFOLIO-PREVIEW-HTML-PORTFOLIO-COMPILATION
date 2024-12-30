@@ -1,6 +1,49 @@
 import Foundation
+import SwiftUI
 
-struct Evidence: Codable, Identifiable {
+enum EvidenceError: LocalizedError {
+    case fileAccessError
+    case invalidFileType
+    case fileTooLarge(maxSize: Int)
+    case uploadFailed(String)
+    case bookmarkError(String)
+    case invalidURL
+    case invalidPath
+    case invalidSiteResponse
+    case invalidDriveResponse
+    case invalidMetadata
+    case invalidDates
+    
+    var errorDescription: String? {
+        switch self {
+        case .fileAccessError:
+            return "Could not access the file. Please try again."
+        case .invalidFileType:
+            return "Invalid file type. Please select a supported file format."
+        case .fileTooLarge(let maxSize):
+            let sizeMB = maxSize / (1024 * 1024)
+            return "File is too large. Maximum size allowed is \(sizeMB)MB."
+        case .uploadFailed(let reason):
+            return "Upload failed: \(reason)"
+        case .bookmarkError(let reason):
+            return "Bookmark error: \(reason)"
+        case .invalidURL:
+            return "Invalid SharePoint URL"
+        case .invalidPath:
+            return "Invalid file path"
+        case .invalidSiteResponse:
+            return "Invalid site response from SharePoint"
+        case .invalidDriveResponse:
+            return "Invalid drive response from SharePoint"
+        case .invalidMetadata:
+            return "Invalid metadata format"
+        case .invalidDates:
+            return "Invalid date format"
+        }
+    }
+}
+
+class Evidence: ObservableObject, Identifiable, Codable {
     let id: UUID
     let criteriaCode: String
     let unitCode: String
@@ -12,36 +55,112 @@ struct Evidence: Codable, Identifiable {
     var sharePointUrl: String?
     private var _fileURL: URL?
     var uploadDate: Date?
-    var sharePointURL: String?
     let associatedCriteria: [String]
     let criteriaDescription: String
     
-    enum EvidenceType: String, Codable {
-        case document
-        case photo
-        case video
-        
-        var allowedExtensions: [String] {
-            switch self {
-            case .document:
-                return ["pdf", "doc", "docx"]
-            case .photo:
-                return ["jpg", "jpeg", "png", "heic"]
-            case .video:
-                return ["mp4", "mov"]
+    @Published var assessmentStatus: AssessmentStatus = .pending
+    @Published var assessorFeedback: String?
+    @Published var assessorName: String?
+    @Published var assessmentDate: Date?
+    @Published var isLocallyUploaded: Bool = false
+    
+    var displayURL: URL? {
+        if let sharePointURL = sharePointUrl, 
+           !sharePointURL.isEmpty {
+            let cleanUrl = sharePointURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: " ", with: "%20")
+            if let url = URL(string: cleanUrl) {
+                return url
             }
         }
+        return resolvedFileURL
+    }
+    
+    enum EvidenceType: String, Codable, CaseIterable {
+        case photo = "Photo"
+        case video = "Video"
+        case document = "Document"
+        case audio = "Audio"
         
-        var maxFileSize: Int {
+        var iconName: String {
             switch self {
-            case .document:
-                return 50 * 1024 * 1024  // 50MB
-            case .photo:
-                return 20 * 1024 * 1024  // 20MB
-            case .video:
-                return 500 * 1024 * 1024 // 500MB
+            case .photo: return "photo"
+            case .video: return "video"
+            case .document: return "doc"
+            case .audio: return "music.note"
             }
         }
+    }
+    
+    enum AssessmentStatus: String, Codable {
+        case pending = "Pending"
+        case approved = "Approved"
+        case rejected = "Rejected"
+        case needsRevision = "Needs Revision"
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, criteriaCode, unitCode, dateUploaded, type, title, description
+        case bookmarkData, sharePointUrl, uploadDate, associatedCriteria
+        case criteriaDescription, assessmentStatus, assessorFeedback
+        case assessmentDate, assessorName, isLocallyUploaded
+        case _fileURL = "fileURL"
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Decode non-published properties first
+        id = try container.decode(UUID.self, forKey: .id)
+        criteriaCode = try container.decode(String.self, forKey: .criteriaCode)
+        unitCode = try container.decode(String.self, forKey: .unitCode)
+        dateUploaded = try container.decode(Date.self, forKey: .dateUploaded)
+        type = try container.decode(EvidenceType.self, forKey: .type)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decode(String.self, forKey: .description)
+        associatedCriteria = try container.decode([String].self, forKey: .associatedCriteria)
+        criteriaDescription = try container.decode(String.self, forKey: .criteriaDescription)
+        
+        // Initialize published properties
+        _assessmentStatus = Published(initialValue: try container.decodeIfPresent(AssessmentStatus.self, forKey: .assessmentStatus) ?? .pending)
+        _assessorFeedback = Published(initialValue: try container.decodeIfPresent(String.self, forKey: .assessorFeedback))
+        _assessorName = Published(initialValue: try container.decodeIfPresent(String.self, forKey: .assessorName))
+        _assessmentDate = Published(initialValue: try container.decodeIfPresent(Date.self, forKey: .assessmentDate))
+        _isLocallyUploaded = Published(initialValue: try container.decodeIfPresent(Bool.self, forKey: .isLocallyUploaded) ?? false)
+        
+        // Optional fields
+        bookmarkData = try container.decodeIfPresent(Data.self, forKey: .bookmarkData)
+        sharePointUrl = try container.decodeIfPresent(String.self, forKey: .sharePointUrl)
+        _fileURL = try container.decodeIfPresent(URL.self, forKey: ._fileURL)
+        uploadDate = try container.decodeIfPresent(Date.self, forKey: .uploadDate)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        // Encode non-published properties
+        try container.encode(id, forKey: .id)
+        try container.encode(criteriaCode, forKey: .criteriaCode)
+        try container.encode(unitCode, forKey: .unitCode)
+        try container.encode(dateUploaded, forKey: .dateUploaded)
+        try container.encode(type, forKey: .type)
+        try container.encode(title, forKey: .title)
+        try container.encode(description, forKey: .description)
+        try container.encode(associatedCriteria, forKey: .associatedCriteria)
+        try container.encode(criteriaDescription, forKey: .criteriaDescription)
+        
+        // Encode published properties
+        try container.encode(assessmentStatus, forKey: .assessmentStatus)
+        try container.encode(assessorFeedback, forKey: .assessorFeedback)
+        try container.encode(assessorName, forKey: .assessorName)
+        try container.encode(assessmentDate, forKey: .assessmentDate)
+        try container.encode(isLocallyUploaded, forKey: .isLocallyUploaded)
+        
+        // Optional fields
+        try container.encodeIfPresent(bookmarkData, forKey: .bookmarkData)
+        try container.encodeIfPresent(sharePointUrl, forKey: .sharePointUrl)
+        try container.encodeIfPresent(_fileURL, forKey: ._fileURL)
+        try container.encodeIfPresent(uploadDate, forKey: .uploadDate)
     }
     
     init(id: UUID = UUID(),
@@ -54,8 +173,15 @@ struct Evidence: Codable, Identifiable {
          bookmarkData: Data? = nil,
          sharePointUrl: String? = nil,
          fileURL: URL? = nil,
-         associatedCriteria: [String] = [],
-         criteriaDescription: String = "") {
+         uploadDate: Date? = nil,
+         associatedCriteria: [String],
+         criteriaDescription: String,
+         assessmentStatus: AssessmentStatus? = nil,
+         assessorFeedback: String? = nil,
+         assessorName: String? = nil,
+         assessmentDate: Date? = nil,
+         isLocallyUploaded: Bool = false) {
+        
         self.id = id
         self.criteriaCode = criteriaCode
         self.unitCode = unitCode
@@ -66,45 +192,149 @@ struct Evidence: Codable, Identifiable {
         self.bookmarkData = bookmarkData
         self.sharePointUrl = sharePointUrl
         self._fileURL = fileURL
+        self.uploadDate = uploadDate
         self.associatedCriteria = associatedCriteria
         self.criteriaDescription = criteriaDescription
-        self.uploadDate = nil
-        self.sharePointURL = nil
+        self.assessmentStatus = assessmentStatus ?? .pending
+        self.assessorFeedback = assessorFeedback
+        self.assessorName = assessorName
+        self.assessmentDate = assessmentDate
+        self.isLocallyUploaded = isLocallyUploaded
     }
     
     var resolvedFileURL: URL? {
-        get throws {
-            if let url = _fileURL {
-                return url
-            }
-            
-            guard let bookmarkData = bookmarkData else {
-                throw AppError.fileAccessError(NSError(domain: "", code: -1))
-            }
-            
-            var isStale = false
-            let url = try URL(resolvingBookmarkData: bookmarkData,
-                            options: [],
-                            relativeTo: nil,
-                            bookmarkDataIsStale: &isStale)
-            
+        // First try SharePoint URL if available
+        if let sharePointURL = sharePointUrl,
+           let url = URL(string: sharePointURL) {
             return url
+        }
+        
+        // Then try local bookmark if available
+        if let bookmarkData = bookmarkData {
+            var isStale = false
+            do {
+                #if targetEnvironment(simulator)
+                return _fileURL
+                #else
+                let url = try URL(resolvingBookmarkData: bookmarkData, 
+                                options: [], 
+                                relativeTo: nil, 
+                                bookmarkDataIsStale: &isStale)
+                return url
+                #endif
+            } catch {
+                print("Error resolving bookmark: \(error)")
+            }
+        }
+        
+        // Finally fall back to stored URL
+        return _fileURL
+    }
+    
+    func updateSharePointInfo(url: String, status: AssessmentStatus = .pending) {
+        if let webUrl = extractWebUrl(from: url) {
+            self.sharePointUrl = webUrl
+            self.uploadDate = Date()
+            self.assessmentStatus = status
+            self.assessorFeedback = ""
+            self.assessmentDate = self.uploadDate
+            self.isLocallyUploaded = true
+            
+            print("Evidence Upload Status:")
+            print("- SharePoint URL: \(self.sharePointUrl ?? "")")
+            print("- Status: \(status.rawValue)")
+            print("- Upload Date: \(self.uploadDate?.description ?? "Unknown")")
+            print("- Is Uploaded: \(self.isUploaded)")
         }
     }
     
-    mutating func setFileURL(_ url: URL) {
-        self._fileURL = url
+    private func extractWebUrl(from url: String) -> String? {
+        return url.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
-    mutating func setBookmarkData(_ data: Data) {
-        self.bookmarkData = data
+    func updateAssessmentInfo(from metadata: EvidenceMetadata) {
+        print("Updating assessment info from metadata:")
+        print("- Previous Status:", assessmentStatus.rawValue)
+        print("- New Status:", metadata.assessmentStatus?.rawValue ?? "nil")
+        
+        if let newStatus = metadata.assessmentStatus {
+            assessmentStatus = newStatus
+        }
+        assessorFeedback = metadata.assessorFeedback
+        assessorName = metadata.assessorName
+        assessmentDate = metadata.assessmentDate
+        
+        print("Update complete:")
+        print("- Current Status:", assessmentStatus.rawValue)
+        print("- Has Feedback:", hasFeedback)
     }
     
-    mutating func setSharePointUrl(_ url: String) {
-        self.sharePointUrl = url
+    var isUploaded: Bool {
+        // Consider evidence uploaded if it has a SharePoint URL or is marked as locally uploaded
+        return (sharePointUrl != nil && !sharePointUrl!.isEmpty) || isLocallyUploaded
     }
     
-    mutating func setUploadDate(_ date: Date) {
-        self.uploadDate = date
+    var hasAssessment: Bool {
+        return assessmentStatus != .pending
+    }
+    
+    var currentStatus: AssessmentStatus {
+        return assessmentStatus
+    }
+    
+    var displayStatus: String {
+        return currentStatus.rawValue
+    }
+    
+    var hasFeedback: Bool {
+        return assessorFeedback != nil && !assessorFeedback!.isEmpty
+    }
+    
+    static func == (lhs: Evidence, rhs: Evidence) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.criteriaCode == rhs.criteriaCode &&
+               lhs.unitCode == rhs.unitCode &&
+               lhs.dateUploaded == rhs.dateUploaded &&
+               lhs.type == rhs.type &&
+               lhs.title == rhs.title &&
+               lhs.description == rhs.description &&
+               lhs.sharePointUrl == rhs.sharePointUrl &&
+               lhs.uploadDate == rhs.uploadDate &&
+               lhs.associatedCriteria == rhs.associatedCriteria &&
+               lhs.criteriaDescription == rhs.criteriaDescription &&
+               lhs.assessmentStatus == rhs.assessmentStatus &&
+               lhs.assessorFeedback == rhs.assessorFeedback &&
+               lhs.assessmentDate == rhs.assessmentDate &&
+               lhs.assessorName == rhs.assessorName &&
+               lhs.isLocallyUploaded == rhs.isLocallyUploaded
+    }
+}
+
+extension Evidence.AssessmentStatus {
+    var displayName: String {
+        switch self {
+        case .pending: return "Pending Assessment"
+        case .approved: return "Approved"
+        case .rejected: return "Needs Revision"
+        case .needsRevision: return "Needs Revision"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .pending: return .orange
+        case .approved: return .green
+        case .rejected: return .red
+        case .needsRevision: return .red
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .pending: return "clock"
+        case .approved: return "checkmark.circle"
+        case .rejected: return "xmark.circle"
+        case .needsRevision: return "exclamationmark.circle"
+        }
     }
 } 

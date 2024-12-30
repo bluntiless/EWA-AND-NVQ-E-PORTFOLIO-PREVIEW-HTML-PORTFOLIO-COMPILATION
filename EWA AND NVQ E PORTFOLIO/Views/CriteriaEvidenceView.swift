@@ -72,12 +72,12 @@ struct CriteriaEvidenceView: View {
             if let evidenceType = selectedEvidenceType {
                 NavigationView {
                     EvidenceUploadView(
+                        evidenceType: evidenceType,
                         criteriaCode: selectedCriteria.map { $0.code }.joined(separator: ", "),
                         unitCode: unit.code,
                         criteriaDescription: selectedCriteria.map { $0.description }.joined(separator: "\n"),
-                        evidenceType: evidenceType,
                         onEvidenceUploaded: { evidence in
-                            // Handle uploaded evidence
+                            evidenceManager.addEvidence(evidence)
                         }
                     )
                 }

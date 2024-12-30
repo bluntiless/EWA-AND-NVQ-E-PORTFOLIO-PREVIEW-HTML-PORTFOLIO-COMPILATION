@@ -5,49 +5,64 @@ import UIKit
 import QuickLook
 
 struct EvidenceRow: View {
-    var evidence: Evidence
+    let evidence: Evidence
+    
+    init(evidence: Evidence) {
+        self.evidence = evidence
+    }
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Preview thumbnail
-            Group {
-                switch evidence.type {
-                case .photo:
-                    if let url = try? evidence.resolvedFileURL,
-                       let image = UIImage(contentsOfFile: url.path) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } else {
-                        Image(systemName: "photo")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                // Preview thumbnail
+                Group {
+                    switch evidence.type {
+                    case .photo:
+                        if let url = try? evidence.resolvedFileURL,
+                           let image = UIImage(contentsOfFile: url.path) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } else {
+                            Image(systemName: "photo")
+                        }
+                    case .video:
+                        Image(systemName: "video.fill")
+                    case .document:
+                        Image(systemName: "doc.fill")
+                    case .audio:
+                        Image(systemName: "audio.fill")
                     }
-                case .video:
-                    Image(systemName: "video.fill")
-                case .document:
-                    Image(systemName: "doc.fill")
+                }
+                .frame(width: 44, height: 44)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+                
+                VStack(alignment: .leading) {
+                    Text(evidence.title)
+                        .font(.headline)
+                    Text(evidence.description)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        
+                    HStack {
+                        Text("Unit \(evidence.unitCode) - \(evidence.criteriaCode)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            
+                        Spacer()
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: evidence.currentStatus.icon)
+                            Text(evidence.currentStatus.displayName)
+                        }
+                        .font(.caption)
+                        .foregroundColor(evidence.currentStatus.color)
+                    }
                 }
             }
-            .frame(width: 44, height: 44)
-            .background(Color(.systemGray6))
-            .cornerRadius(8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(evidence.title)
-                    .font(.headline)
-                Text(evidence.description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                Text("Unit \(evidence.unitCode) - \(evidence.criteriaCode)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .foregroundColor(.secondary)
         }
-        .contentShape(Rectangle())
+        .padding(.vertical, 8)
     }
 }
