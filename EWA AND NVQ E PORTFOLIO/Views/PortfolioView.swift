@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PortfolioView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
+    @EnvironmentObject var qualificationStore: QualificationStore
     @State private var selectedEvidence: Evidence?
     @State private var showingPreview = false
     
@@ -61,7 +62,10 @@ struct PortfolioView: View {
                 }
                 
                 Section(header: Text("PROGRESS")) {
-                    NavigationLink(destination: ProgressDetailView()) {
+                    NavigationLink(destination: ProgressDetailView(
+                        evidenceManager: evidenceManager,
+                        qualificationStore: qualificationStore
+                    )) {
                         Label("View Progress", systemImage: "chart.bar")
                     }
                 }

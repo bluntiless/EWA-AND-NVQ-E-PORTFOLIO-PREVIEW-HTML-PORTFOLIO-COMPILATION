@@ -70,7 +70,7 @@ class EvidenceManager: ObservableObject {
         print("Starting evidence status refresh")
         do {
             let updatedItems = try await storageManager.fetchEvidence()
-            var modifiedItems = updatedItems
+            let modifiedItems = updatedItems
             
             for i in modifiedItems.indices {
                 if let sharePointUrl = modifiedItems[i].sharePointUrl {
@@ -103,6 +103,22 @@ class EvidenceManager: ObservableObject {
         }
         
         return try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointURL)
+    }
+    
+    func getApprovedEvidence(for unitCode: String) -> [Evidence] {
+        evidenceItems.filter { evidence in
+            let isApproved = evidence.assessmentStatus == .approved
+            return isApproved && evidence.unitCode == unitCode
+        }
+    }
+    
+    func getApprovedEvidenceCount(for unitCode: String) -> Int {
+        getApprovedEvidence(for: unitCode).count
+    }
+    
+    func getRecentApprovedEvidence(for unitCode: String, limit: Int = 2) -> [Evidence]? {
+        let approved = getApprovedEvidence(for: unitCode)
+        return approved.isEmpty ? nil : Array(approved.prefix(limit))
     }
 } 
 

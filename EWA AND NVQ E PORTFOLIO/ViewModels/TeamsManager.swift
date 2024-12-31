@@ -141,7 +141,7 @@ class TeamsManager: NSObject, ObservableObject {
         // Ensure we're authenticated first
         try await authenticate()
         
-        var updatedEvidence = evidence
+        let updatedEvidence = evidence
         
         // Get file URL
         guard let fileURL = evidence.resolvedFileURL else {

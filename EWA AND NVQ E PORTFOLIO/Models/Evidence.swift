@@ -64,6 +64,36 @@ class Evidence: ObservableObject, Identifiable, Codable {
     @Published var assessmentDate: Date?
     @Published var isLocallyUploaded: Bool = false
     
+    @Published var uploadProgress: Double = 0.0
+    @Published var processingStatus: ProcessingStatus = .notStarted
+    
+    enum ProcessingStatus: String, Codable {
+        case notStarted = "Not Started"
+        case uploading = "Uploading"
+        case processing = "Processing"
+        case complete = "Complete"
+        case failed = "Failed"
+        
+        var icon: String {
+            switch self {
+            case .notStarted: return "circle"
+            case .uploading: return "arrow.up.circle"
+            case .processing: return "gear.circle"
+            case .complete: return "checkmark.circle.fill"
+            case .failed: return "exclamationmark.circle.fill"
+            }
+        }
+        
+        var color: Color {
+            switch self {
+            case .notStarted: return .gray
+            case .uploading, .processing: return .blue
+            case .complete: return .green
+            case .failed: return .red
+            }
+        }
+    }
+    
     var displayURL: URL? {
         if let sharePointURL = sharePointUrl, 
            !sharePointURL.isEmpty {
@@ -105,6 +135,8 @@ class Evidence: ObservableObject, Identifiable, Codable {
         case criteriaDescription, assessmentStatus, assessorFeedback
         case assessmentDate, assessorName, isLocallyUploaded
         case _fileURL = "fileURL"
+        case uploadProgress
+        case processingStatus
     }
     
     required init(from decoder: Decoder) throws {
@@ -127,6 +159,8 @@ class Evidence: ObservableObject, Identifiable, Codable {
         _assessorName = Published(initialValue: try container.decodeIfPresent(String.self, forKey: .assessorName))
         _assessmentDate = Published(initialValue: try container.decodeIfPresent(Date.self, forKey: .assessmentDate))
         _isLocallyUploaded = Published(initialValue: try container.decodeIfPresent(Bool.self, forKey: .isLocallyUploaded) ?? false)
+        _uploadProgress = Published(initialValue: try container.decodeIfPresent(Double.self, forKey: .uploadProgress) ?? 0.0)
+        _processingStatus = Published(initialValue: try container.decodeIfPresent(ProcessingStatus.self, forKey: .processingStatus) ?? .notStarted)
         
         // Optional fields
         bookmarkData = try container.decodeIfPresent(Data.self, forKey: .bookmarkData)
@@ -161,6 +195,8 @@ class Evidence: ObservableObject, Identifiable, Codable {
         try container.encodeIfPresent(sharePointUrl, forKey: .sharePointUrl)
         try container.encodeIfPresent(_fileURL, forKey: ._fileURL)
         try container.encodeIfPresent(uploadDate, forKey: .uploadDate)
+        try container.encode(uploadProgress, forKey: .uploadProgress)
+        try container.encode(processingStatus, forKey: .processingStatus)
     }
     
     init(id: UUID = UUID(),
@@ -308,6 +344,29 @@ class Evidence: ObservableObject, Identifiable, Codable {
                lhs.assessorName == rhs.assessorName &&
                lhs.isLocallyUploaded == rhs.isLocallyUploaded
     }
+    
+    func updateProgress(_ progress: Double) {
+        uploadProgress = min(max(progress, 0), 1)
+        if progress >= 1 {
+            processingStatus = .processing
+        } else if progress > 0 {
+            processingStatus = .uploading
+        }
+    }
+    
+    func completeProcessing(success: Bool) {
+        processingStatus = success ? .complete : .failed
+        if success {
+            uploadProgress = 1.0
+        }
+    }
+    
+    var overallStatus: String {
+        if processingStatus != .complete {
+            return processingStatus.rawValue
+        }
+        return assessmentStatus.displayName
+    }
 }
 
 extension Evidence.AssessmentStatus {
@@ -315,8 +374,8 @@ extension Evidence.AssessmentStatus {
         switch self {
         case .pending: return "Pending Assessment"
         case .approved: return "Approved"
-        case .rejected: return "Needs Revision"
-        case .needsRevision: return "Needs Revision"
+        case .rejected: return "Revision Required"
+        case .needsRevision: return "Revision Required"
         }
     }
     
@@ -324,17 +383,67 @@ extension Evidence.AssessmentStatus {
         switch self {
         case .pending: return .orange
         case .approved: return .green
-        case .rejected: return .red
-        case .needsRevision: return .red
+        case .rejected, .needsRevision: 
+            return Color(red: 0.9, green: 0.3, blue: 0.3)
         }
     }
     
     var icon: String {
         switch self {
-        case .pending: return "clock"
-        case .approved: return "checkmark.circle"
-        case .rejected: return "xmark.circle"
-        case .needsRevision: return "exclamationmark.circle"
+        case .pending: return "hourglass.circle"
+        case .approved: return "checkmark.circle.fill"
+        case .rejected: return "exclamationmark.triangle"
+        case .needsRevision: return "pencil.circle"
+        }
+    }
+    
+    var accessibilityDescription: String {
+        switch self {
+        case .pending: return "Assessment is pending review"
+        case .approved: return "Evidence has been approved"
+        case .rejected: return "Evidence requires revision"
+        case .needsRevision: return "Evidence needs to be revised"
+        }
+    }
+}
+
+extension Evidence {
+    var statusDisplayInfo: (text: String, color: Color, icon: String) {
+        let status = currentStatus
+        return (
+            text: status.displayName,
+            color: status.color,
+            icon: status.icon
+        )
+    }
+    
+    var formattedAssessmentDate: String? {
+        guard let date = assessmentDate else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    var feedbackSummary: String {
+        if let feedback = assessorFeedback, !feedback.isEmpty {
+            return feedback
+        }
+        return "No feedback provided yet"
+    }
+    
+    var progressDisplayInfo: (progress: Double, color: Color, icon: String) {
+        switch processingStatus {
+        case .notStarted:
+            return (0, .gray, "circle")
+        case .uploading:
+            return (uploadProgress, .blue, "arrow.up.circle")
+        case .processing:
+            return (uploadProgress, .blue, "gear.circle")
+        case .complete:
+            return (1, statusDisplayInfo.color, statusDisplayInfo.icon)
+        case .failed:
+            return (uploadProgress, .red, "exclamationmark.circle.fill")
         }
     }
 } 

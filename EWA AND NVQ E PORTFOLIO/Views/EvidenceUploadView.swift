@@ -154,7 +154,19 @@ struct EvidenceUploadView: View {
         .navigationTitle("Upload \(evidenceType.rawValue.capitalized)")
         .fileImporter(
             isPresented: $showingDocumentPicker,
-            allowedContentTypes: [.pdf, .text, .image],
+            allowedContentTypes: [
+                .pdf,
+                .text,
+                .plainText,
+                .image,
+                .jpeg,
+                .png,
+                UTType("com.microsoft.word.doc")!,
+                UTType("org.openxmlformats.wordprocessingml.document")!,
+                .rtf,
+                .spreadsheet,
+                .presentation
+            ],
             allowsMultipleSelection: true
         ) { result in
             switch result {
@@ -182,7 +194,32 @@ struct EvidenceUploadView: View {
     }
     
     private func handleFileSelection(_ url: URL) {
-        selectedDocumentURLs.append(url)
+        guard url.startAccessingSecurityScopedResource() else {
+            errorMessage = "Cannot access the selected file"
+            showingError = true
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        do {
+            // Create a security scoped bookmark
+            let bookmarkData = try url.bookmarkData(
+                options: .minimalBookmark,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            
+            // Copy file to app's temporary directory
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(url.pathExtension)
+            
+            try FileManager.default.copyItem(at: url, to: tempURL)
+            selectedDocumentURLs.append(tempURL)
+        } catch {
+            errorMessage = "Failed to process file: \(error.localizedDescription)"
+            showingError = true
+        }
     }
     
     private func handlePhotoSelection(_ item: PhotosPickerItem) {
@@ -241,7 +278,21 @@ struct EvidenceUploadView: View {
         defer { isUploading = false }
         
         do {
-            let bookmarkData = try fileURL.bookmarkData()
+            print("Starting upload for file: \(fileURL)")
+            
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                throw AppError.fileAccessError(NSError(
+                    domain: "com.waynewright.ewa-nvq-portfolio1",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "File does not exist at path"]
+                ))
+            }
+            
+            let bookmarkData = try fileURL.bookmarkData(
+                options: .minimalBookmark,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
             
             let evidence = Evidence(
                 criteriaCode: criteriaCode,
@@ -263,6 +314,8 @@ struct EvidenceUploadView: View {
             }
         } catch {
             print("Upload error: \(error)")
+            print("File URL: \(fileURL)")
+            print("File exists: \(FileManager.default.fileExists(atPath: fileURL.path))")
             await MainActor.run {
                 errorMessage = error.localizedDescription
                 showingError = true
