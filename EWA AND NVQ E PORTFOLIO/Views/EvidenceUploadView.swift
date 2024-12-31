@@ -111,6 +111,11 @@ struct EvidenceUploadView: View {
                         photoLibrary: .shared()
                     ) {
                         Label("Select Videos", systemImage: "video")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                     }
                     .onChange(of: selectedVideoItems) { _, newValue in
                         for item in newValue {
@@ -194,31 +199,37 @@ struct EvidenceUploadView: View {
     }
     
     private func handleFileSelection(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            errorMessage = "Cannot access the selected file"
-            showingError = true
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
-        
-        do {
-            // Create a security scoped bookmark
-            let bookmarkData = try url.bookmarkData(
-                options: .minimalBookmark,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
+        switch evidenceType {
+        case .photo, .video:
+            // For photos and videos, we already have the file in our temp directory
+            selectedDocumentURLs.append(url)
             
-            // Copy file to app's temporary directory
-            let tempURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString)
-                .appendingPathExtension(url.pathExtension)
+        case .document, .audio:
+            // For documents and audio, use security-scoped resource handling
+            guard url.startAccessingSecurityScopedResource() else {
+                errorMessage = "Cannot access the selected file"
+                showingError = true
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
             
-            try FileManager.default.copyItem(at: url, to: tempURL)
-            selectedDocumentURLs.append(tempURL)
-        } catch {
-            errorMessage = "Failed to process file: \(error.localizedDescription)"
-            showingError = true
+            do {
+                let bookmarkData = try url.bookmarkData(
+                    options: .minimalBookmark,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+                
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension(url.pathExtension)
+                
+                try FileManager.default.copyItem(at: url, to: tempURL)
+                selectedDocumentURLs.append(tempURL)
+            } catch {
+                errorMessage = "Failed to process file: \(error.localizedDescription)"
+                showingError = true
+            }
         }
     }
     
