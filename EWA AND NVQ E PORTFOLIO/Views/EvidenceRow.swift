@@ -6,59 +6,90 @@ import QuickLook
 
 struct EvidenceRow: View {
     let evidence: Evidence
+    @EnvironmentObject var evidenceManager: EvidenceManager
+    
+    // Add status icon computed property
+    private var statusIcon: some View {
+        Image(systemName: evidence.statusDisplayInfo.icon)
+            .foregroundColor(evidence.statusDisplayInfo.color)
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                // Enhanced thumbnail preview
-                ThumbnailView(evidence: evidence)
-                    .frame(width: 44, height: 44)
-                    .background(Color(.systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(.systemGray4), lineWidth: 0.5)
-                    )
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    // Title
-                    Text(evidence.title)
-                        .font(.headline)
+        NavigationLink(destination: EvidenceDetailView(evidence: evidence)) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 12) {
+                    // Enhanced thumbnail preview
+                    ThumbnailView(evidence: evidence)
+                        .frame(width: 44, height: 44)
+                        .background(Color(.systemGray6))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.systemGray4), lineWidth: 0.5)
+                        )
                     
-                    // Unit and criteria reference
-                    Text("Unit \(evidence.unitCode) - \(evidence.criteriaCode)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Title
+                        Text(evidence.title)
+                            .font(.headline)
+                        
+                        // Unit and criteria reference
+                        Text("Unit \(evidence.unitCode) - \(evidence.criteriaCode)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // New status badge
+                    StatusBadge(evidence: evidence)
                 }
                 
-                Spacer()
+                // Description
+                if !evidence.description.isEmpty {
+                    Text(evidence.description)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
                 
-                // New status badge
-                StatusBadge(evidence: evidence)
-            }
-            
-            // Description
-            if !evidence.description.isEmpty {
-                Text(evidence.description)
-                    .font(.subheadline)
+                // Assessment Info
+                if evidence.hasAssessment {
+                    AssessmentInfoView(evidence: evidence)
+                }
+                
+                // Upload Date
+                Text("Uploaded \(evidence.dateUploaded.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption)
                     .foregroundColor(.secondary)
-                    .lineLimit(2)
             }
-            
-            // Assessment Info
-            if evidence.hasAssessment {
-                AssessmentInfoView(evidence: evidence)
+            .padding()
+            .background(Color(.systemBackground))
+            .cornerRadius(10)
+            .shadow(radius: 1)
+            .onAppear {
+                // Refresh metadata when row appears
+                if evidence.isUploaded {
+                    Task {
+                        try? await evidenceManager.refreshEvidenceStatus()
+                    }
+                }
             }
-            
-            // Upload Date
-            Text("Uploaded \(evidence.dateUploaded.formatted(date: .abbreviated, time: .shortened))")
-                .font(.caption)
-                .foregroundColor(.secondary)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(10)
-        .shadow(radius: 1)
+    }
+    
+    var statusView: some View {
+        HStack {
+            statusIcon
+            if evidence.isLocallyUploaded {
+                Text(evidence.assessmentStatus.rawValue.capitalized)
+                    .foregroundColor(evidence.statusDisplayInfo.color)
+            }
+        }
+    }
+    
+    private func getSharePointPath() -> String {
+        return SharePointPathFormatter.formatPath(unitCode: evidence.unitCode, criteriaCode: evidence.criteriaCode)
     }
 }
 
@@ -122,11 +153,6 @@ struct ThumbnailView: View {
             if isLoading {
                 ProgressView()
                     .scaleEffect(0.7)
-                    .onAppear {
-                        if evidence.resolvedFileURL == nil {
-                            isLoading = false
-                        }
-                    }
             } else {
                 Group {
                     switch evidence.type {
@@ -140,7 +166,6 @@ struct ThumbnailView: View {
                             Image(systemName: "photo")
                                 .imageScale(.large)
                                 .foregroundColor(.blue)
-                                .frame(width: 24, height: 24)
                         }
                     case .video:
                         ZStack {
@@ -168,7 +193,7 @@ struct ThumbnailView: View {
                             .foregroundColor(evidence.type == .document ? .blue : .purple)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: 44, height: 44)
             }
         }
         .onAppear {
@@ -180,95 +205,59 @@ struct ThumbnailView: View {
     }
     
     private func loadThumbnail() {
-        guard let url = evidence.resolvedFileURL else {
-            print("📸 No URL available for thumbnail")
-            isLoading = false
-            return
-        }
-        
-        print("📸 Loading thumbnail from: \(url)")
-        
-        guard url.startAccessingSecurityScopedResource() else {
-            print("📸 Failed to access security scoped resource")
-            isLoading = false
-            return
-        }
-        
-        defer {
-            url.stopAccessingSecurityScopedResource()
-            print("📸 Stopped accessing security scoped resource")
-        }
-        
         loadingTask?.cancel()
         loadingTask = Task {
             do {
-                switch evidence.type {
-                case .photo:
-                    print("📸 Loading photo thumbnail")
-                    if let image = UIImage(contentsOfFile: url.path) {
-                        print("📸 Successfully loaded image")
+                // Try local file first
+                if let localURL = evidence.resolvedFileURL {
+                    print("📸 Loading thumbnail from local URL: \(localURL)")
+                    
+                    if let image = UIImage(contentsOfFile: localURL.path) {
                         let size = CGSize(width: 88, height: 88)
                         if let thumbnail = await image.byPreparingThumbnail(ofSize: size) {
-                            print("📸 Successfully generated thumbnail")
                             await MainActor.run {
                                 self.thumbnailImage = thumbnail
                                 self.isLoading = false
                             }
-                        } else {
-                            print("📸 Failed to generate thumbnail")
-                            await MainActor.run { self.isLoading = false }
+                            return
                         }
-                    } else {
-                        print("📸 Failed to load image from path")
-                        await MainActor.run { self.isLoading = false }
                     }
-                    
-                case .video:
-                    let asset = AVAsset(url: url)
-                    let imageGenerator = AVAssetImageGenerator(asset: asset)
-                    imageGenerator.appliesPreferredTrackTransform = true
-                    imageGenerator.maximumSize = CGSize(width: 88, height: 88)
-                    
-                    do {
-                        let cgImage = try await withTimeout(seconds: 3.0) {
-                            try imageGenerator.copyCGImage(at: .zero, actualTime: nil)
-                        }
-                        let image = UIImage(cgImage: cgImage)
-                        if let thumbnail = await image.byPreparingThumbnail(ofSize: CGSize(width: 88, height: 88)) {
-                            await MainActor.run {
-                                self.thumbnailImage = thumbnail
-                                self.isLoading = false
-                            }
-                        }
-                    } catch {
-                        print("Video thumbnail generation failed: \(error)")
-                        await MainActor.run { self.isLoading = false }
-                    }
-                    
-                default:
-                    await MainActor.run { self.isLoading = false }
                 }
+                
+                // Try bookmark data if available
+                if let bookmarkData = evidence.bookmarkData {
+                    var isStale = false
+                    if let resolvedURL = try? URL(resolvingBookmarkData: bookmarkData, 
+                                                bookmarkDataIsStale: &isStale) {
+                        
+                        if resolvedURL.startAccessingSecurityScopedResource() {
+                            defer { resolvedURL.stopAccessingSecurityScopedResource() }
+                            
+                            if let image = UIImage(contentsOfFile: resolvedURL.path) {
+                                let size = CGSize(width: 88, height: 88)
+                                if let thumbnail = await image.byPreparingThumbnail(ofSize: size) {
+                                    await MainActor.run {
+                                        self.thumbnailImage = thumbnail
+                                        self.isLoading = false
+                                    }
+                                    return
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If all attempts fail, show placeholder
+                await MainActor.run {
+                    self.isLoading = false
+                }
+                
             } catch {
-                print("Error loading thumbnail: \(error)")
-                await MainActor.run { self.isLoading = false }
+                print("📸 Error loading thumbnail: \(error)")
+                await MainActor.run {
+                    self.isLoading = false
+                }
             }
-        }
-    }
-    
-    private func withTimeout<T>(seconds: Double, operation: @escaping () async throws -> T) async throws -> T {
-        try await withThrowingTaskGroup(of: T.self) { group in
-            group.addTask {
-                try await operation()
-            }
-            
-            group.addTask {
-                try await Task.sleep(for: .seconds(seconds))
-                throw CancellationError()
-            }
-            
-            let result = try await group.next()!
-            group.cancelAll()
-            return result
         }
     }
 }

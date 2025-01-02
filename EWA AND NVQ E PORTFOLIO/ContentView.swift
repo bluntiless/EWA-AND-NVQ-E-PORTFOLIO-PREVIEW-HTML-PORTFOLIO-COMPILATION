@@ -57,6 +57,12 @@ struct ContentView: View {
                     Label("Portfolio", systemImage: "folder.fill")
                 }
             
+            // Profile Tab
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.fill")
+                }
+            
             // Teams Integration Tab
             NavigationView {
                 TeamsIntegrationView()

@@ -214,7 +214,7 @@ struct EvidenceUploadView: View {
             defer { url.stopAccessingSecurityScopedResource() }
             
             do {
-                let bookmarkData = try url.bookmarkData(
+                _ = try url.bookmarkData(
                     options: .minimalBookmark,
                     includingResourceValuesForKeys: nil,
                     relativeTo: nil

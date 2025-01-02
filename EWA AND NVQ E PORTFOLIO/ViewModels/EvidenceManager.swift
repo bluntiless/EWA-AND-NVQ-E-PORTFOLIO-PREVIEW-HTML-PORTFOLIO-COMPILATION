@@ -41,25 +41,33 @@ class EvidenceManager: ObservableObject {
         }
     }
     
-    func uploadEvidence(_ evidence: Evidence) async throws {
-        // 1. Upload to SharePoint
-        let updatedEvidence = try await TeamsManager.shared.uploadMultipleToSharePoint(evidenceItems: [evidence]).first!
+    func uploadMultipleEvidence(_ evidenceItems: [Evidence]) async throws {
+        // 1. Upload all items to SharePoint with MSAL auth
+        let updatedEvidenceItems = try await TeamsManager.shared.uploadMultipleToSharePoint(evidenceItems: evidenceItems)
         
-        // 2. Save to local storage
-        try await storageManager.updateEvidence(updatedEvidence)
+        // 2. Save all to local storage with proper metadata
+        for evidence in updatedEvidenceItems {
+            try await storageManager.updateEvidence(evidence)
+        }
         
         // 3. Update UI state
         await MainActor.run {
-            if let index = evidenceItems.firstIndex(where: { $0.id == updatedEvidence.id }) {
-                evidenceItems[index] = updatedEvidence
-            } else {
-                evidenceItems.append(updatedEvidence)
+            for evidence in updatedEvidenceItems {
+                if let index = self.evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                    self.evidenceItems[index] = evidence
+                } else {
+                    self.evidenceItems.append(evidence)
+                }
             }
             lastUploadTimestamp = Date()
         }
         
-        // 4. Refresh status
+        // 4. Refresh status to get assessment updates
         await refreshEvidenceStatus()
+    }
+    
+    func uploadEvidence(_ evidence: Evidence) async throws {
+        try await uploadMultipleEvidence([evidence])
     }
     
     func addEvidence(_ evidence: Evidence) {
@@ -73,22 +81,31 @@ class EvidenceManager: ObservableObject {
             let modifiedItems = updatedItems
             
             for i in modifiedItems.indices {
-                if let sharePointUrl = modifiedItems[i].sharePointUrl {
-                    do {
-                        try await TeamsManager.shared.authenticate()
-                        print("Fetching metadata for item \(i): \(sharePointUrl)")
-                        let metadata = try await fetchEvidenceMetadata(for: modifiedItems[i])
-                        print("Received metadata for item \(i): \(metadata)")
-                        modifiedItems[i].updateAssessmentInfo(from: metadata)
-                        try await storageManager.updateEvidence(modifiedItems[i])
-                    } catch {
-                        print("Error fetching metadata for evidence \(i): \(error)")
-                    }
+                // Use the actual SharePoint URL that was saved during upload
+                guard let sharePointUrl = modifiedItems[i].sharePointUrl else { 
+                    print("No SharePoint URL for item \(i)")
+                    continue 
+                }
+                
+                do {
+                    try await TeamsManager.shared.authenticate()
+                    
+                    // Use the exact URL that was saved during upload
+                    print("Fetching metadata for: \(sharePointUrl)")
+                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                    print("Received metadata: \(metadata)")
+                    
+                    // Update assessment info
+                    modifiedItems[i].updateAssessmentInfo(from: metadata)
+                    
+                    // Save to storage
+                    try await storageManager.updateEvidence(modifiedItems[i])
+                } catch {
+                    print("Error fetching metadata: \(error)")
                 }
             }
             
             await MainActor.run {
-                print("Updating UI with \(modifiedItems.count) items")
                 self.evidenceItems = modifiedItems
             }
         } catch {
@@ -97,12 +114,29 @@ class EvidenceManager: ObservableObject {
     }
     
     func fetchEvidenceMetadata(for evidence: Evidence) async throws -> EvidenceMetadata {
-        guard let sharePointURL = evidence.sharePointUrl,
-              let _ = URL(string: sharePointURL) else {
+        guard let sharePointURL = evidence.sharePointUrl else {
             throw EvidenceError.invalidURL
         }
         
-        return try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointURL)
+        // Use the existing verification response to get metadata
+        do {
+            try await TeamsManager.shared.authenticate()
+            
+            // Use the SharePoint URL directly since we know it works
+            let metadataUrl = SharePointPathFormatter.constructUrl(
+                path: SharePointPathFormatter.formatPath(
+                    unitCode: evidence.unitCode,
+                    criteriaCode: evidence.criteriaCode
+                ),
+                fileName: URL(string: sharePointURL)?.lastPathComponent ?? "",
+                format: .metadata
+            )
+            
+            return try await TeamsManager.shared.fetchEvidenceMetadata(from: metadataUrl)
+        } catch {
+            print("Metadata fetch failed: \(error)")
+            throw error
+        }
     }
     
     func getApprovedEvidence(for unitCode: String) -> [Evidence] {
@@ -119,6 +153,60 @@ class EvidenceManager: ObservableObject {
     func getRecentApprovedEvidence(for unitCode: String, limit: Int = 2) -> [Evidence]? {
         let approved = getApprovedEvidence(for: unitCode)
         return approved.isEmpty ? nil : Array(approved.prefix(limit))
+    }
+    
+    func verifyFileExists(at sharePointUrl: String) async throws -> Bool {
+        do {
+            // Create temporary Evidence object for metadata fetch
+            let tempEvidence = Evidence(
+                id: UUID(),
+                criteriaCode: "",
+                unitCode: "",
+                dateUploaded: Date(),
+                type: .photo,
+                title: "",
+                description: "",
+                bookmarkData: nil,
+                sharePointUrl: sharePointUrl,
+                fileURL: nil,
+                uploadDate: nil,
+                associatedCriteria: [],
+                criteriaDescription: "",
+                assessmentStatus: .pending,
+                assessorFeedback: nil,
+                assessorName: nil,
+                assessmentDate: nil,
+                isLocallyUploaded: true
+            )
+            
+            // Initial delay to allow SharePoint to process
+            try await Task.sleep(nanoseconds: 5_000_000_000) // 5 second initial delay
+            
+            // Use existing metadata fetch with progressive retry
+            for attempt in 1...5 {
+                do {
+                    print("Attempting verification (\(attempt)/5) for: \(sharePointUrl)")
+                    let metadata = try await fetchEvidenceMetadata(for: tempEvidence)
+                    if metadata != nil {
+                        print("✅ File verification successful on attempt \(attempt)")
+                        return true
+                    }
+                    // Exponential backoff with longer delays
+                    let delay = UInt64(pow(3.0, Double(attempt)) * 1_000_000_000)
+                    print("Waiting \(delay/1_000_000_000)s before next attempt...")
+                    try await Task.sleep(nanoseconds: delay)
+                } catch {
+                    print("⚠️ Verification attempt \(attempt) failed: \(error)")
+                    if attempt == 5 { return false }
+                    let delay = UInt64(pow(3.0, Double(attempt)) * 1_000_000_000)
+                    try await Task.sleep(nanoseconds: delay)
+                }
+            }
+            return false
+        } catch {
+            print("❌ File verification failed: \(error)")
+            return false
+        }
     }
 } 
 

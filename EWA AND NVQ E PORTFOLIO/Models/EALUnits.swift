@@ -359,7 +359,7 @@ enum EALUnits {
 
         // ENTP3-07
         Unit(
-            code: "ENTP3-07",
+            code: "NETP3-07",
             eltCode: "EWA07",
             reference: "ENTP3-07",
             title: "Apply Fault Diagnosis and Rectification",

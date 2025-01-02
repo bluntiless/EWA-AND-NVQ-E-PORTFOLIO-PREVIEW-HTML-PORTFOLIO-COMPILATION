@@ -28,11 +28,7 @@
 		<string>msauthv2</string>
 		<string>msauthv3</string>
 	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
 	<key>UIFileSharingEnabled</key>
 	<true/>
-	<key>NSDocumentsFolderUsageDescription</key>
-	<string>Access is needed to upload your documents</string>
 </dict>
 </plist>
