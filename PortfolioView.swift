@@ -21,46 +21,47 @@ struct PortfolioView: View {
     var body: some View {
         NavigationView {
             List {
-                // 1. Evidence Collection
-                Section(header: Text("EVIDENCE COLLECTION")) {
-                    NavigationLink(destination: EvidenceUploadContainerView(
-                        criteriaCode: "General",
-                        unitCode: "ALL",
-                        criteriaDescription: "General Evidence Upload",
-                        onEvidenceUploaded: { evidence in
-                            evidenceManager.addEvidence(evidence)
+                LazyVStack(spacing: 0, pinnedViews: []) {
+                    // 1. Evidence Collection
+                    Section(header: Text("EVIDENCE COLLECTION")) {
+                        NavigationLink(destination: EvidenceUploadContainerView(
+                            criteriaCode: "General",
+                            unitCode: "ALL",
+                            criteriaDescription: "General Evidence Upload",
+                            onEvidenceUploaded: { evidence in
+                                evidenceManager.addEvidence(evidence)
+                            }
+                        ).environmentObject(evidenceManager)) {
+                            Label("Upload Evidence", systemImage: "square.and.arrow.up")
                         }
-                    ).environmentObject(evidenceManager)) {
-                        Label("Upload Evidence", systemImage: "square.and.arrow.up")
                     }
-                }
-                
-                // 2. Progress View - Force it to be second
-                Section(header: Text("PROGRESS")) {
-                    NavigationLink(destination: ProgressDetailView(
-                        evidenceManager: evidenceManager,
-                        qualificationStore: qualificationStore
-                    )) {
-                        Label("View Progress", systemImage: "chart.bar")
+                    
+                    // 2. Progress View
+                    Section(header: Text("PROGRESS")) {
+                        NavigationLink(destination: ProgressDetailView(
+                            evidenceManager: evidenceManager,
+                            qualificationStore: qualificationStore
+                        )) {
+                            Label("View Progress", systemImage: "chart.bar")
+                        }
                     }
-                }
-                .zIndex(1) // Try to force ordering
-                
-                // 3. Uploaded Evidence
-                Section(header: Text("UPLOADED EVIDENCE")) {
-                    if evidenceManager.isLoading {
-                        ProgressView()
-                    } else if uploadedEvidence.isEmpty {
-                        Text("No evidence uploaded")
-                            .foregroundColor(.secondary)
-                            .italic()
-                    } else {
-                        ForEach(uploadedEvidence) { evidence in
-                            Button {
-                                selectedEvidence = evidence
-                                showingPreview = true
-                            } label: {
-                                EvidenceRow(evidence: evidence)
+                    
+                    // 3. Uploaded Evidence
+                    Section(header: Text("UPLOADED EVIDENCE")) {
+                        if evidenceManager.isLoading {
+                            ProgressView()
+                        } else if uploadedEvidence.isEmpty {
+                            Text("No evidence uploaded")
+                                .foregroundColor(.secondary)
+                                .italic()
+                        } else {
+                            ForEach(uploadedEvidence) { evidence in
+                                Button {
+                                    selectedEvidence = evidence
+                                    showingPreview = true
+                                } label: {
+                                    EvidenceRow(evidence: evidence)
+                                }
                             }
                         }
                     }

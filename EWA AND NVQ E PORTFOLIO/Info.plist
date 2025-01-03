@@ -87,6 +87,8 @@
         <string>LaunchImage</string>
         <key>UIImageRespectsSafeAreaInsets</key>
         <true/>
+        <key>UIColorName</key>
+        <string>LaunchBackgroundColor</string>
     </dict>
 </dict>
 </plist>

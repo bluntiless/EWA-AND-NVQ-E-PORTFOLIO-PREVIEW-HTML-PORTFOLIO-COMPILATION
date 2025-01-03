@@ -23,6 +23,7 @@ struct EvidenceUploadView: View {
     @State private var isUploading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var uploadProgress: Float = 0
     
     // Properties
     let evidenceType: Evidence.EvidenceType
@@ -142,18 +143,16 @@ struct EvidenceUploadView: View {
             if !selectedDocumentURLs.isEmpty {
                 Button(action: {
                     Task {
-                        if let url = selectedDocumentURLs.first {
-                            await uploadEvidence(fileURL: url, title: title, description: description)
-                        }
+                        await uploadMultipleEvidence()
                     }
                 }) {
                     if isUploading {
-                        ProgressView()
+                        ProgressView(value: uploadProgress, total: 1.0)
                     } else {
                         Text("Upload \(selectedDocumentURLs.count) Files")
                     }
                 }
-                .disabled(isUploading || !canUpload)
+                .disabled(isUploading || selectedDocumentURLs.isEmpty)
             }
         }
         .navigationTitle("Upload \(evidenceType.rawValue.capitalized)")
@@ -332,5 +331,20 @@ struct EvidenceUploadView: View {
                 showingError = true
             }
         }
+    }
+    
+    private func uploadMultipleEvidence() async {
+        isUploading = true
+        var completedUploads = 0
+        for url in selectedDocumentURLs {
+            do {
+                await uploadEvidence(fileURL: url, title: title, description: description)
+                completedUploads += 1
+                uploadProgress = Float(completedUploads) / Float(selectedDocumentURLs.count)
+            } catch {
+                print("Failed to upload: \(url)")
+            }
+        }
+        isUploading = false
     }
 }
