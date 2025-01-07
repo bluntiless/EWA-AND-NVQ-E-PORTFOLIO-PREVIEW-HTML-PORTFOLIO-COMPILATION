@@ -374,17 +374,17 @@ extension Evidence.AssessmentStatus {
         switch self {
         case .pending: return "Pending Assessment"
         case .approved: return "Approved"
-        case .rejected: return "Revision Required"
+        case .rejected: return "Rejected"
         case .needsRevision: return "Revision Required"
         }
     }
     
     var color: Color {
         switch self {
-        case .pending: return .orange
+        case .pending: return Color(red: 1.0, green: 0.8, blue: 0.0)
         case .approved: return .green
-        case .rejected, .needsRevision: 
-            return Color(red: 0.9, green: 0.3, blue: 0.3)
+        case .rejected: return .red
+        case .needsRevision: return .orange
         }
     }
     
@@ -392,7 +392,7 @@ extension Evidence.AssessmentStatus {
         switch self {
         case .pending: return "hourglass.circle"
         case .approved: return "checkmark.circle.fill"
-        case .rejected: return "exclamationmark.triangle"
+        case .rejected: return "xmark.circle.fill"
         case .needsRevision: return "pencil.circle"
         }
     }

@@ -764,6 +764,7 @@ class TeamsManager: NSObject, ObservableObject {
                 
                 // Extract fields - use exact field names from SharePoint
                 let rawStatus = (fields["AssessmentStatus"] as? String)?.lowercased() ?? "pending"
+                print("Raw status from SharePoint:", rawStatus)
                 let assessmentStatus: Evidence.AssessmentStatus
                 
                 // Map SharePoint status to enum - case-insensitive comparison
@@ -772,6 +773,10 @@ class TeamsManager: NSObject, ObservableObject {
                     assessmentStatus = .approved
                 case let status where status.caseInsensitiveCompare("rejected") == .orderedSame:
                     assessmentStatus = .rejected
+                case let status where status.caseInsensitiveCompare("resubmission required") == .orderedSame:
+                    assessmentStatus = .needsRevision
+                case let status where status.caseInsensitiveCompare("needs revision") == .orderedSame:
+                    assessmentStatus = .needsRevision
                 default:
                     assessmentStatus = .pending
                 }
