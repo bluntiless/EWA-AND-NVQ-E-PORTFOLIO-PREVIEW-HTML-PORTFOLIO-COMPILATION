@@ -3,119 +3,59 @@ import SwiftUI
 struct PortfolioView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
     @EnvironmentObject var qualificationStore: QualificationStore
-    @State private var selectedEvidence: Evidence?
-    @State private var showingPreview = false
+    @State private var selectedTab = 0
     
-    var uploadedEvidence: [Evidence] {
-        let evidence = evidenceManager.evidenceItems.filter { $0.isUploaded }
-        print("Total evidence items: \(evidenceManager.evidenceItems.count)")
-        print("Uploaded evidence items: \(evidence.count)")
-        print("Evidence items status:")
-        evidenceManager.evidenceItems.forEach { item in
-            print("- ID: \(item.id)")
-            print("  SharePoint URL: \(item.sharePointUrl ?? "None")")
-            print("  Is Locally Uploaded: \(item.isLocallyUploaded)")
-            print("  Is Uploaded: \(item.isUploaded)")
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            EvidenceTabView()
+                .tabItem {
+                    Label("Evidence", systemImage: "doc.text")
+                }
+                .tag(0)
+                .environmentObject(evidenceManager)
+                .environmentObject(qualificationStore)
+            
+            ProgressTabView()
+                .tabItem {
+                    Label("Progress", systemImage: "chart.bar.fill")
+                }
+                .tag(1)
+                .environmentObject(evidenceManager)
+                .environmentObject(qualificationStore)
         }
-        return evidence
+        .task {
+            await evidenceManager.loadInitialData()
+            await evidenceManager.refreshEvidenceStatus()
+        }
     }
+}
+
+struct EvidenceTabView: View {
+    @EnvironmentObject var evidenceManager: EvidenceManager
+    @EnvironmentObject var qualificationStore: QualificationStore
     
     var body: some View {
         NavigationView {
-            List {
-                Section(header: Text("EVIDENCE COLLECTION")) {
-                    NavigationLink(destination: EvidenceUploadContainerView(
-                        criteriaCode: "General",
-                        unitCode: "ALL",
-                        criteriaDescription: "General Evidence Upload",
-                        onEvidenceUploaded: { evidence in
-                            evidenceManager.addEvidence(evidence)
-                        }
-                    ).environmentObject(evidenceManager)) {
-                        Label("Upload Evidence", systemImage: "square.and.arrow.up")
-                    }
-                }
-                
-                Section(header: Text("UPLOADED EVIDENCE")) {
-                    if evidenceManager.isLoading {
-                        ProgressView()
-                    } else if uploadedEvidence.isEmpty {
-                        Text("No evidence uploaded")
-                            .foregroundColor(.secondary)
-                            .italic()
-                    } else {
-                        ForEach(uploadedEvidence) { evidence in
-                            Button {
-                                selectedEvidence = evidence
-                                showingPreview = true
-                            } label: {
-                                EvidenceRow(evidence: evidence)
-                            }
-                        }
-                    }
-                }
-                .onChange(of: evidenceManager.lastUploadTimestamp) { _ in
-                    Task {
-                        await evidenceManager.loadInitialData()
-                        await evidenceManager.refreshEvidenceStatus()
-                    }
-                }
-                
-                Section(header: Text("PROGRESS")) {
-                    NavigationLink(destination: ProgressDetailView(
-                        evidenceManager: evidenceManager,
-                        qualificationStore: qualificationStore
-                    )) {
-                        Label("View Progress", systemImage: "chart.bar")
-                    }
-                }
-            }
-            .navigationTitle("Portfolio")
-            .refreshable {
-                print("Manual refresh triggered")
-                await evidenceManager.loadInitialData()
-                await evidenceManager.refreshEvidenceStatus()
-            }
-            .sheet(isPresented: $showingPreview) {
-                if let evidence = selectedEvidence {
-                    NavigationStack {
-                        EvidencePreviewView(evidence: evidence)
-                            .navigationTitle(evidence.title)
-                            .navigationBarTitleDisplayMode(.inline)
-                            .toolbar {
-                                ToolbarItem(placement: .topBarTrailing) {
-                                    Button("Done") {
-                                        showingPreview = false
-                                    }
-                                }
-                            }
-                    }
-                }
-            }
-            .onAppear {
-                Task {
-                    print("PortfolioView appeared - Loading initial data")
-                    await evidenceManager.loadInitialData()
-                    await evidenceManager.refreshEvidenceStatus()
-                }
-            }
-            .onChange(of: showingPreview) { isShowing in
-                if !isShowing {  // When preview is dismissed
+            EvidenceListView()
+                .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
                     Task {
                         await evidenceManager.refreshEvidenceStatus()
                     }
                 }
-            }
-            .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
-                Task {
-                    await evidenceManager.refreshEvidenceStatus()
-                }
-            }
         }
-        .task {
-            print("PortfolioView appeared - Loading initial data")
-            await evidenceManager.loadInitialData()
-            await evidenceManager.refreshEvidenceStatus()
+    }
+}
+
+struct ProgressTabView: View {
+    @EnvironmentObject var evidenceManager: EvidenceManager
+    @EnvironmentObject var qualificationStore: QualificationStore
+    
+    var body: some View {
+        NavigationView {
+            ProgressDetailView(
+                evidenceManager: evidenceManager,
+                qualificationStore: qualificationStore
+            )
         }
     }
 } 

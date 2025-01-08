@@ -3,6 +3,7 @@ import UIKit
 import Foundation
 
 struct EvidenceDetailView: View {
+    @EnvironmentObject var evidenceManager: EvidenceManager
     let evidence: Evidence
     @State private var displayImage: UIImage?
     @State private var isLoading = true
@@ -51,6 +52,10 @@ struct EvidenceDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadFullImage()
+        }
+        .task {
+            // Only refresh when viewing
+            await evidenceManager.viewEvidence(evidence)
         }
     }
     

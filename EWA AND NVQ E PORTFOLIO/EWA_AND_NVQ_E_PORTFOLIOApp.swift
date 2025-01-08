@@ -48,6 +48,9 @@ struct EWA_AND_NVQ_E_PORTFOLIOApp: App {
             ContentView()
                 .environmentObject(evidenceManager)
                 .environmentObject(qualificationStore)
+                .task {
+                    await evidenceManager.loadInitialData()
+                }
                 .onAppear {
                     if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                        let rootViewController = windowScene.windows.first?.rootViewController {
@@ -61,3 +64,12 @@ struct EWA_AND_NVQ_E_PORTFOLIOApp: App {
         }
     }
 }
+
+// MODIFICATION PROTOCOLS
+/*
+ CHANGE CONTROL:
+ - All changes require explicit approval
+ - No UI/UX modifications without review
+ - Preserve existing functionality
+ - Document all impacts before changes
+*/

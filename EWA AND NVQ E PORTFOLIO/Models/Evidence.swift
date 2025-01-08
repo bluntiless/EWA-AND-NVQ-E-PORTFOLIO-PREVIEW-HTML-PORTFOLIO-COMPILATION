@@ -13,6 +13,7 @@ enum EvidenceError: LocalizedError {
     case invalidDriveResponse
     case invalidMetadata
     case invalidDates
+    case cannotDeleteApproved
     
     var errorDescription: String? {
         switch self {
@@ -39,6 +40,8 @@ enum EvidenceError: LocalizedError {
             return "Invalid metadata format"
         case .invalidDates:
             return "Invalid date format"
+        case .cannotDeleteApproved:
+            return "Cannot delete approved evidence as it affects unit progress"
         }
     }
 }
@@ -66,6 +69,8 @@ class Evidence: ObservableObject, Identifiable, Codable {
     
     @Published var uploadProgress: Double = 0.0
     @Published var processingStatus: ProcessingStatus = .notStarted
+    
+    var isHidden: Bool = false
     
     enum ProcessingStatus: String, Codable {
         case notStarted = "Not Started"
@@ -137,6 +142,7 @@ class Evidence: ObservableObject, Identifiable, Codable {
         case _fileURL = "fileURL"
         case uploadProgress
         case processingStatus
+        case isHidden
     }
     
     required init(from decoder: Decoder) throws {

@@ -2,14 +2,13 @@ import SwiftUI
 
 struct EvidenceListView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
-    @State private var showingDeleteAlert = false
-    @State private var evidenceToDelete: Evidence?
     @State private var selectedEvidence: Evidence?
     @State private var showingPreview = false
+    @State private var showingHidden = false
     
     var body: some View {
         List {
-            ForEach(evidenceManager.evidenceItems) { evidence in
+            ForEach(evidenceManager.evidenceItems.filter { !$0.isHidden }) { evidence in
                 Button {
                     selectedEvidence = evidence
                     showingPreview = true
@@ -17,16 +16,54 @@ struct EvidenceListView: View {
                     EvidenceRow(evidence: evidence)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        evidenceToDelete = evidence
-                        showingDeleteAlert = true
+                    Button {
+                        withAnimation {
+                            evidenceManager.hideEvidence(evidence)
+                        }
                     } label: {
-                        Label("Delete", systemImage: "trash")
+                        Label("Hide", systemImage: "eye.slash")
+                    }
+                    .tint(.orange)
+                }
+            }
+        }
+        .accessibilityIdentifier("EvidenceList")
+        .navigationTitle("Evidence")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingHidden.toggle()
+                } label: {
+                    Label("Hidden Items", systemImage: "eye.slash")
+                }
+            }
+        }
+        .sheet(isPresented: $showingHidden) {
+            NavigationView {
+                List {
+                    ForEach(evidenceManager.evidenceItems.filter { $0.isHidden }) { evidence in
+                        EvidenceRow(evidence: evidence)
+                            .swipeActions(edge: .trailing) {
+                                Button {
+                                    evidenceManager.unhideEvidence(evidence)
+                                } label: {
+                                    Label("Unhide", systemImage: "eye")
+                                }
+                                .tint(.blue)
+                            }
+                    }
+                }
+                .accessibilityIdentifier("HiddenList")
+                .navigationTitle("Hidden Items")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            showingHidden = false
+                        }
                     }
                 }
             }
         }
-        .navigationTitle("Evidence")
         .sheet(isPresented: $showingPreview) {
             if let evidence = selectedEvidence {
                 NavigationStack {
@@ -50,21 +87,6 @@ struct EvidenceListView: View {
         }
         .refreshable {
             await evidenceManager.loadInitialData()
-        }
-        .alert("Delete Evidence", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                if let evidence = evidenceToDelete {
-                    Task {
-                        await evidenceManager.deleteEvidence(evidence)
-                        await evidenceManager.loadInitialData()
-                    }
-                }
-            }
-        } message: {
-            if let evidence = evidenceToDelete {
-                Text("Are you sure you want to delete '\(evidence.title)'? This action cannot be undone.")
-            }
         }
     }
 } 

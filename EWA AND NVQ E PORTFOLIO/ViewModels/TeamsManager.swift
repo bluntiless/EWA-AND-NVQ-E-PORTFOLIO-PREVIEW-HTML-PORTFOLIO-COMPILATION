@@ -45,7 +45,7 @@ class WebAuthenticationPresenter: NSObject, ASWebAuthenticationPresentationConte
 }
 
 @MainActor
-class TeamsManager: NSObject, ObservableObject {
+class TeamsManager: ObservableObject {
     static let shared = TeamsManager()
     
     @Published var isAuthenticated = false
@@ -104,8 +104,8 @@ class TeamsManager: NSObject, ObservableObject {
         let uploadUrl: String
     }
     
-    private override init() {
-        super.init()
+    private init() {
+        // Initialize properties
     }
     
     func setPresentingViewController(_ viewController: UIViewController) {
@@ -1227,12 +1227,16 @@ class TeamsManager: NSObject, ObservableObject {
         }
         
         print("Fetching fresh metadata for:", sharePointUrl)
+        print("Associated criteria:", evidence.associatedCriteria)
         
+        // Fetch metadata for the main evidence URL
         let metadata = try await fetchEvidenceMetadata(for: evidence)
         
         await MainActor.run {
+            // Update the evidence status regardless of multiple criteria
             if let status = metadata.assessmentStatus {
                 evidence.assessmentStatus = status
+                print("Updated status to:", status.rawValue)
             }
             evidence.assessorFeedback = metadata.assessorFeedback
             evidence.assessorName = metadata.assessorName
@@ -1358,3 +1362,19 @@ private struct SharePointError: Codable {
     }
     let error: ErrorDetails
 }
+
+// CRITICAL SYSTEM PROTOCOLS
+/*
+ PROTECTED FUNCTIONALITY:
+ - MSAL Authentication
+ - SharePoint Integration
+ - Assessment Status/Feedback
+ - Data Models
+ - UI/UX Design
+ 
+ ANY CHANGES REQUIRE:
+ 1. Explicit permission
+ 2. Impact assessment
+ 3. Code review
+ 4. Functionality verification
+*/

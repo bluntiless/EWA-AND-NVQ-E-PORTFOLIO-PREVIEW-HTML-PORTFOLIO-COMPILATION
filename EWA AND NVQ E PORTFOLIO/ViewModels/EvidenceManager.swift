@@ -1,17 +1,50 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 class EvidenceManager: ObservableObject {
-    @Published var evidenceItems: [Evidence] = []
+    @Published private(set) var evidenceItems: [Evidence] = []
     @Published var lastUploadTimestamp: Date?
     @Published var isLoading = true
     private let storageManager: StorageManager
     
+    // Add persistent storage for hidden state
+    private let hiddenStateKey = "hiddenEvidenceState"
+    
+    // Add refresh throttling
+    private var lastRefreshTime: Date?
+    private let minimumRefreshInterval: TimeInterval = 600 // 10 minutes
+    
     init(storageManager: StorageManager = StorageManager()) {
         self.storageManager = storageManager
+        
+        // Load hidden state on init
+        loadHiddenState()
+        
         Task {
             await loadInitialData()
+        }
+    }
+    
+    private func loadHiddenState() {
+        if let data = UserDefaults.standard.data(forKey: hiddenStateKey),
+           let hiddenItems = try? JSONDecoder().decode([UUID: Bool].self, from: data) {
+            // Restore hidden state to existing items
+            evidenceItems = evidenceItems.map { evidence in
+                var updatedEvidence = evidence
+                updatedEvidence.isHidden = hiddenItems[evidence.id] ?? false
+                return updatedEvidence
+            }
+        }
+    }
+    
+    private func saveHiddenState() {
+        let hiddenItems = Dictionary(uniqueKeysWithValues: 
+            evidenceItems.map { ($0.id, $0.isHidden) }
+        )
+        if let data = try? JSONEncoder().encode(hiddenItems) {
+            UserDefaults.standard.set(data, forKey: hiddenStateKey)
         }
     }
     
@@ -19,9 +52,19 @@ class EvidenceManager: ObservableObject {
         print("EvidenceManager - Loading initial data")
         isLoading = true
         do {
-            let items = try await storageManager.fetchEvidence()
-            print("EvidenceManager - Loaded \(items.count) items")
-            print("Items with SharePoint URLs: \(items.filter { $0.sharePointUrl != nil }.count)")
+            var items = try await storageManager.fetchEvidence()
+            // Load hidden states without checking status
+            if let data = UserDefaults.standard.data(forKey: hiddenStateKey),
+               let hiddenItems = try? JSONDecoder().decode([UUID: Bool].self, from: data) {
+                for (id, isHidden) in hiddenItems {
+                    if let index = items.firstIndex(where: { $0.id == id }) {
+                        var item = items[index]
+                        item.isHidden = isHidden
+                        items[index] = item
+                    }
+                }
+            }
+            
             await MainActor.run {
                 self.evidenceItems = items
                 self.isLoading = false
@@ -32,38 +75,60 @@ class EvidenceManager: ObservableObject {
         }
     }
     
-    func deleteEvidence(_ evidence: Evidence) async {
-        do {
-            try await storageManager.deleteEvidence(evidence)
-            evidenceItems.removeAll { $0.id == evidence.id }
-        } catch {
-            print("Error deleting evidence: \(error)")
+    func updateProgress() {
+        print("\n=== Progress Counting Diagnostic ===")
+        
+        // Group evidence by unit
+        let groupedEvidence = Dictionary(grouping: evidenceItems) { $0.unitCode }
+        
+        for (unit, items) in groupedEvidence {
+            print("\nUnit: \(unit)")
+            print("Total items: \(items.count)")
+            
+            let approvedItems = items.filter { evidence in
+                let isApproved = evidence.assessmentStatus == .approved
+                print("""
+                    - ID: \(evidence.id)
+                      Status: \(evidence.assessmentStatus)
+                      Hidden: \(evidence.isHidden)
+                      Counted: \(isApproved)
+                    """)
+                return isApproved
+            }
+            
+            print("Approved count: \(approvedItems.count)")
         }
+        
+        objectWillChange.send()
     }
     
     func uploadMultipleEvidence(_ evidenceItems: [Evidence]) async throws {
-        // 1. Upload all items to SharePoint with MSAL auth
+        // 1. Upload to SharePoint with MSAL auth
         let updatedEvidenceItems = try await TeamsManager.shared.uploadMultipleToSharePoint(evidenceItems: evidenceItems)
         
-        // 2. Save all to local storage with proper metadata
+        // 2. Save to local storage and update UI
         for evidence in updatedEvidenceItems {
+            // Save to storage
             try await storageManager.updateEvidence(evidence)
-        }
-        
-        // 3. Update UI state
-        await MainActor.run {
-            for evidence in updatedEvidenceItems {
+            
+            // Update UI state
+            await MainActor.run {
                 if let index = self.evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
                     self.evidenceItems[index] = evidence
                 } else {
                     self.evidenceItems.append(evidence)
                 }
             }
-            lastUploadTimestamp = Date()
+            
+            // Refresh metadata
+            await refreshEvidenceMetadata(for: evidence)
         }
         
-        // 4. Refresh status to get assessment updates
-        await refreshEvidenceStatus()
+        // Update timestamp
+        await MainActor.run {
+            lastUploadTimestamp = Date()
+            updateProgress()
+        }
     }
     
     func uploadEvidence(_ evidence: Evidence) async throws {
@@ -74,8 +139,23 @@ class EvidenceManager: ObservableObject {
         evidenceItems.append(evidence)
     }
     
+    private func shouldRefresh() -> Bool {
+        guard let lastRefresh = lastRefreshTime else {
+            return true
+        }
+        return Date().timeIntervalSince(lastRefresh) > minimumRefreshInterval
+    }
+    
     func refreshEvidenceStatus() async {
+        // Only refresh if enough time has passed
+        guard shouldRefresh() else {
+            print("Skipping refresh - too soon since last refresh")
+            return
+        }
+        
         print("Starting evidence status refresh")
+        lastRefreshTime = Date()
+        
         do {
             let updatedItems = try await storageManager.fetchEvidence()
             let modifiedItems = updatedItems
@@ -147,7 +227,15 @@ class EvidenceManager: ObservableObject {
     }
     
     func getApprovedEvidenceCount(for unitCode: String) -> Int {
-        getApprovedEvidence(for: unitCode).count
+        return evidenceItems.filter { evidence in
+            // Only count if:
+            // 1. Assessment status is approved
+            // 2. Matches the unit code
+            // 3. Not hidden
+            return evidence.assessmentStatus == .approved &&
+                   evidence.unitCode == unitCode &&
+                   !evidence.isHidden
+        }.count
     }
     
     func getRecentApprovedEvidence(for unitCode: String, limit: Int = 2) -> [Evidence]? {
@@ -207,6 +295,107 @@ class EvidenceManager: ObservableObject {
             print("❌ File verification failed: \(error)")
             return false
         }
+    }
+    
+    func hideEvidence(_ evidence: Evidence) {
+        var updatedItems = evidenceItems
+        if let index = updatedItems.firstIndex(where: { $0.id == evidence.id }) {
+            updatedItems[index].isHidden = true
+            withAnimation {
+                self.evidenceItems = updatedItems
+            }
+            // Save to both StorageManager and UserDefaults for redundancy
+            Task {
+                do {
+                    try await storageManager.updateEvidence(updatedItems[index])
+                    saveHiddenStateToUserDefaults()
+                } catch {
+                    print("Failed to save hidden state: \(error)")
+                }
+            }
+        }
+    }
+    
+    func unhideEvidence(_ evidence: Evidence) {
+        var updatedItems = evidenceItems
+        if let index = updatedItems.firstIndex(where: { $0.id == evidence.id }) {
+            updatedItems[index].isHidden = false
+            
+            // Immediately update UI
+            withAnimation {
+                self.evidenceItems = updatedItems
+                updateProgress()
+            }
+            
+            // Save state and refresh metadata immediately
+            Task {
+                do {
+                    try await storageManager.updateEvidence(updatedItems[index])
+                    saveHiddenStateToUserDefaults()
+                    
+                    // Refresh metadata immediately when unhiding
+                    await refreshEvidenceMetadata(for: updatedItems[index])
+                } catch {
+                    print("Failed to save hidden state: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func saveHiddenStateToUserDefaults() {
+        let hiddenItems = Dictionary(uniqueKeysWithValues: 
+            evidenceItems.map { ($0.id, $0.isHidden) }
+        )
+        if let data = try? JSONEncoder().encode(hiddenItems) {
+            UserDefaults.standard.set(data, forKey: hiddenStateKey)
+        }
+    }
+    
+    // Modify refreshEvidenceMetadata to preserve hidden state
+    func refreshEvidenceMetadata(for evidence: Evidence) async {
+        let wasHidden = evidence.isHidden  // Store current hidden state
+        let currentIndex = evidenceItems.firstIndex(where: { $0.id == evidence.id })
+        
+        do {
+            let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+            await MainActor.run {
+                if let index = currentIndex {
+                    var updatedEvidence = evidenceItems[index]
+                    // Update metadata while preserving hidden state
+                    updatedEvidence.assessmentStatus = metadata.assessmentStatus ?? .pending
+                    updatedEvidence.assessorFeedback = metadata.assessorFeedback
+                    updatedEvidence.assessorName = metadata.assessorName
+                    updatedEvidence.assessmentDate = metadata.assessmentDate
+                    updatedEvidence.isHidden = wasHidden  // Restore hidden state
+                    evidenceItems[index] = updatedEvidence
+                    
+                    // Ensure hidden state is saved
+                    Task {
+                        try? await storageManager.updateEvidence(updatedEvidence)
+                        saveHiddenStateToUserDefaults()
+                    }
+                }
+            }
+        } catch {
+            print("Failed to refresh metadata: \(error)")
+        }
+    }
+    
+    // Only refresh in these specific cases:
+    // 1. Manual pull-to-refresh
+    func manualRefresh() async {
+        guard shouldRefresh() else {
+            print("Skipping refresh - too soon since last refresh")
+            return
+        }
+        lastRefreshTime = Date()
+        await refreshEvidenceStatus()
+    }
+    
+    // 2. When viewing specific evidence
+    func viewEvidence(_ evidence: Evidence) async {
+        // Always refresh when viewing individual evidence
+        await refreshEvidenceMetadata(for: evidence)
     }
 } 
 
