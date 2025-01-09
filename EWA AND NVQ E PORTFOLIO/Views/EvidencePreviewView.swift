@@ -125,26 +125,68 @@ struct EvidencePreviewView: View {
             return
         }
         
-        // Try to get local file using existing resolvedFileURL
-        if let localUrl = evidence.resolvedFileURL {
-            print("📸 Preview: Loading from local file: \(localUrl.path)")
-            
-            // Ensure we can access the file
-            if localUrl.startAccessingSecurityScopedResource() {
-                defer { localUrl.stopAccessingSecurityScopedResource() }
+        Task {
+            do {
+                print("🖼️ Starting preview image load...")
                 
-                if let image = UIImage(contentsOfFile: localUrl.path) {
-                    self.previewImage = image
+                // First try local file if available
+                if let localUrl = evidence.resolvedFileURL {
+                    print("📍 Trying local file: \(localUrl.path)")
+                    if localUrl.startAccessingSecurityScopedResource() {
+                        defer { localUrl.stopAccessingSecurityScopedResource() }
+                        
+                        if let image = UIImage(contentsOfFile: localUrl.path) {
+                            print("✅ Loaded from local file")
+                            await MainActor.run {
+                                self.previewImage = image
+                                self.isLoading = false
+                            }
+                            return
+                        }
+                    }
+                    print("⚠️ Failed to load from local file")
+                }
+                
+                // Try SharePoint URL
+                if let sharePointUrl = evidence.sharePointUrl {
+                    print("📸 Trying SharePoint URL: \(sharePointUrl)")
+                    
+                    // Get fresh metadata with download URL
+                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+                    
+                    // Use TeamsManager to make the authenticated request
+                    let urlToUse = metadata.downloadUrl ?? sharePointUrl
+                    print("📥 Using URL: \(urlToUse)")
+                    
+                    // Let TeamsManager handle the authentication
+                    let (data, response) = try await TeamsManager.shared.makeAuthenticatedRequest(url: urlToUse)
+                    
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("📡 Response status: \(httpResponse.statusCode)")
+                    }
+                    
+                    if let image = UIImage(data: data) {
+                        print("✅ Loaded from SharePoint")
+                        await MainActor.run {
+                            self.previewImage = image
+                            self.isLoading = false
+                        }
+                        return
+                    }
+                    print("⚠️ Failed to load from SharePoint")
+                }
+                
+                print("❌ Failed to load image from any source")
+                await MainActor.run {
                     self.isLoading = false
-                    return
+                }
+            } catch {
+                print("❌ Error loading image: \(error)")
+                await MainActor.run {
+                    self.isLoading = false
                 }
             }
-            
-            print("📸 Preview: Failed to load from local file")
         }
-        
-        print("📸 Preview: No local file available")
-        isLoading = false
     }
 }
 

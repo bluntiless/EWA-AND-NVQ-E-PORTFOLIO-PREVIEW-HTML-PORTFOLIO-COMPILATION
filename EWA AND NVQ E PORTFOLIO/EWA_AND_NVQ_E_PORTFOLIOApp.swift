@@ -38,29 +38,18 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 @main
 struct EWA_AND_NVQ_E_PORTFOLIOApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var evidenceManager = EvidenceManager()
-    @StateObject private var qualificationStore = QualificationStore()
-    @StateObject private var teamsManager = TeamsManager.shared
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(evidenceManager)
-                .environmentObject(qualificationStore)
-                .task {
-                    await evidenceManager.loadInitialData()
-                }
                 .onAppear {
+                    // Set the window for authentication
                     if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let rootViewController = windowScene.windows.first?.rootViewController {
-                        teamsManager.setPresentingViewController(rootViewController)
+                       let window = windowScene.windows.first {
+                        TeamsManager.shared.setPresentingViewController(window.rootViewController!)
                     }
                 }
-                .handlesExternalEvents(
-                    preferring: Set(["msauth.com.waynewright.ewa-nvq-portfolio1"]),
-                    allowing: Set(["msauth.com.waynewright.ewa-nvq-portfolio1"])
-                )
         }
     }
 }

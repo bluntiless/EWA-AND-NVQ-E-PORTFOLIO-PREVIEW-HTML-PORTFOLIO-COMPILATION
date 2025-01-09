@@ -80,6 +80,27 @@ class TeamsManager: ObservableObject {
         }
     }
     
+    private var authSession: ASWebAuthenticationSession?
+    private var isAuthenticating = false
+    private let authQueue = DispatchQueue(label: "com.waynewright.ewa-nvq-portfolio1.auth")
+    
+    private actor AuthenticationActor {
+        private var isAuthenticating = false
+        
+        func performAuthenticated<T>(_ operation: () async throws -> T) async throws -> T {
+            while isAuthenticating {
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+            
+            isAuthenticating = true
+            defer { isAuthenticating = false }
+            
+            return try await operation()
+        }
+    }
+    
+    private let authActor = AuthenticationActor()
+    
     struct Channel: Identifiable {
         let id: String
         let name: String
@@ -1340,6 +1361,131 @@ class TeamsManager: ObservableObject {
         case invalidURL
         case invalidResponse
         case metadataFetchFailed
+    }
+    
+    func makeAuthenticatedRequest(url urlString: String) async throws -> (Data, URLResponse) {
+        print("🔐 Making authenticated request to:", urlString)
+        
+        return try await authActor.performAuthenticated {
+            // Try to use existing token first
+            if let token = self.accessToken,
+               let tokenExpiry = self.tokenExpirationDate,
+               tokenExpiry > Date() {
+                print("✅ Using valid cached token")
+                return try await makeRequestWithToken(urlString: urlString, token: token)
+            }
+            
+            // Need to authenticate
+            print("🔑 No valid token, authenticating...")
+            try await authenticate()
+            
+            guard let newToken = self.accessToken else {
+                throw TeamsError.notAuthenticated
+            }
+            
+            return try await makeRequestWithToken(urlString: urlString, token: newToken)
+        }
+    }
+    
+    private func makeRequestWithToken(urlString: String, token: String) async throws -> (Data, URLResponse) {
+        // Convert SharePoint URL to Graph API URL
+        let graphUrl: String
+        if urlString.contains("/sites/EWANVQLevel3ElectroTechnical/Shared%20Documents/") {
+            // Extract relative path and site info
+            let siteId = "wrightspark625.sharepoint.com,77f748ac-6618-4f8d-ae7b-1e927fad2fea,f7a8aba3-0493-4888-8d22-00685d8072ae"
+            let driveId = "b!rEj3dxhmjU-uex6Sf60v6qOrqPeTBIhIjSIAaF2Acq7pMgSXCyLfQ5tkmDbarwlF"
+            
+            let relativePath = urlString
+                .replacingOccurrences(of: "https://wrightspark625.sharepoint.com/sites/EWANVQLevel3ElectroTechnical/Shared%20Documents/", with: "")
+                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            
+            // Use appropriate endpoint based on file type
+            let fileExtension = (relativePath as NSString).pathExtension.lowercased()
+            
+            switch fileExtension {
+            case "pdf":
+                // For PDFs, use the /content endpoint
+                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath):/content"
+                print("📄 Using PDF content endpoint")
+                
+            case "mp4", "mov", "m4v":
+                // For videos, get a streaming URL
+                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath)"
+                print("🎥 Using video streaming endpoint")
+                
+            case "doc", "docx", "xls", "xlsx", "ppt", "pptx":
+                // For Office documents, use preview endpoint
+                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath):/preview"
+                print("📝 Using Office preview endpoint")
+                
+            default:
+                // Default to content endpoint for other files
+                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath):/content"
+                print("📥 Using default content endpoint")
+            }
+            
+            print("📥 Using Graph API URL:", graphUrl)
+        } else {
+            graphUrl = urlString
+        }
+        
+        guard let url = URL(string: graphUrl) else {
+            throw TeamsError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        // For video streaming, we need to handle the response differently
+        if url.absoluteString.contains("/root:/") && !url.absoluteString.contains("/content") {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("📡 Response status:", httpResponse.statusCode)
+                
+                if httpResponse.statusCode == 401 {
+                    print("🔄 Token expired, clearing cache...")
+                    self.accessToken = nil
+                    self.cachedToken = nil
+                    self.tokenExpirationDate = nil
+                    return try await makeAuthenticatedRequest(url: urlString)
+                }
+                
+                // For video/preview endpoints, return the response data directly
+                if httpResponse.statusCode >= 400 {
+                    print("❌ Request failed with status:", httpResponse.statusCode)
+                    if let errorText = String(data: data, encoding: .utf8) {
+                        print("Error details:", errorText)
+                    }
+                }
+            }
+            
+            return (data, response)
+        }
+        
+        // For direct content downloads
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        if let httpResponse = response as? HTTPURLResponse {
+            print("📡 Response status:", httpResponse.statusCode)
+            
+            if httpResponse.statusCode == 401 {
+                print("🔄 Token expired, clearing cache...")
+                self.accessToken = nil
+                self.cachedToken = nil
+                self.tokenExpirationDate = nil
+                return try await makeAuthenticatedRequest(url: urlString)
+            }
+            
+            if httpResponse.statusCode >= 400 {
+                print("❌ Request failed with status:", httpResponse.statusCode)
+                if let errorText = String(data: data, encoding: .utf8) {
+                    print("Error details:", errorText)
+                }
+            }
+        }
+        
+        return (data, response)
     }
 }
 

@@ -76,29 +76,24 @@ class EvidenceManager: ObservableObject {
     }
     
     func updateProgress() {
-        print("\n=== Progress Counting Diagnostic ===")
+        // Add diagnostic logging without changing functionality
+        print("\n=== Progress Diagnostic ===")
         
-        // Group evidence by unit
         let groupedEvidence = Dictionary(grouping: evidenceItems) { $0.unitCode }
         
         for (unit, items) in groupedEvidence {
-            print("\nUnit: \(unit)")
-            print("Total items: \(items.count)")
+            let visibleItems = items.filter { !$0.isHidden }
+            let approvedItems = visibleItems.filter { $0.assessmentStatus == .approved }
             
-            let approvedItems = items.filter { evidence in
-                let isApproved = evidence.assessmentStatus == .approved
-                print("""
-                    - ID: \(evidence.id)
-                      Status: \(evidence.assessmentStatus)
-                      Hidden: \(evidence.isHidden)
-                      Counted: \(isApproved)
-                    """)
-                return isApproved
-            }
-            
-            print("Approved count: \(approvedItems.count)")
+            print("""
+                \nUnit: \(unit)
+                - Total Items: \(items.count)
+                - Visible Items: \(visibleItems.count)
+                - Approved Items: \(approvedItems.count)
+                """)
         }
         
+        // Preserve existing functionality
         objectWillChange.send()
     }
     
@@ -227,15 +222,10 @@ class EvidenceManager: ObservableObject {
     }
     
     func getApprovedEvidenceCount(for unitCode: String) -> Int {
-        return evidenceItems.filter { evidence in
-            // Only count if:
-            // 1. Assessment status is approved
-            // 2. Matches the unit code
-            // 3. Not hidden
-            return evidence.assessmentStatus == .approved &&
-                   evidence.unitCode == unitCode &&
-                   !evidence.isHidden
-        }.count
+        let unitEvidence = evidenceItems.filter { 
+            $0.unitCode == unitCode && !$0.isHidden 
+        }
+        return unitEvidence.filter { $0.assessmentStatus == .approved }.count
     }
     
     func getRecentApprovedEvidence(for unitCode: String, limit: Int = 2) -> [Evidence]? {
