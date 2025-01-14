@@ -33,113 +33,77 @@ struct EvidenceUploadView: View {
     let onEvidenceUploaded: (Evidence) -> Void
     
     var body: some View {
-        Form {
-            Section(header: Text("Details")) {
-                TextField("Title", text: $title)
-                TextEditor(text: $description)
-                    .frame(height: 100)
+        formContent
+            .navigationTitle("Upload \(evidenceType.rawValue.capitalized)")
+            .fileImporter(isPresented: $showingDocumentPicker,
+                         allowedContentTypes: supportedDocumentTypes,
+                         allowsMultipleSelection: true) { result in
+                handleDocumentPickerResult(result)
             }
-            
-            Section(header: Text("File")) {
+            .alert("Error", isPresented: $showingError) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
+            .onAppear {
+                setupViewController()
+            }
+    }
+    
+    private var formContent: some View {
+        Form {
+            detailsSection
+            fileSection
+            uploadButton
+        }
+    }
+    
+    private var detailsSection: some View {
+        Section(header: Text("Details")) {
+            TextField("Title", text: $title)
+            TextEditor(text: $description)
+                .frame(height: 100)
+        }
+    }
+    
+    private var fileSection: some View {
+        Section(header: Text("File")) {
+            Group {
                 switch evidenceType {
                 case .photo:
-                    if !selectedDocumentURLs.isEmpty {
-                        ScrollView(.horizontal) {
-                            HStack {
-                                ForEach(selectedDocumentURLs, id: \.self) { url in
-                                    VStack {
-                                        ImagePreview(url: url)
-                                            .frame(width: 60, height: 60)
-                                            .cornerRadius(8)
-                                        
-                                        Button(action: {
-                                            selectedDocumentURLs.removeAll { $0 == url }
-                                        }) {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundColor(.red)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    PhotosPicker(
-                        selection: $selectedPhotoItems,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        Label("Select Photos", systemImage: "photo")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                    .onChange(of: selectedPhotoItems) { _, newValue in
-                        for item in newValue {
-                            handlePhotoSelection(item)
-                        }
-                    }
-                    
+                    photoSelectionView
                 case .video:
-                    if !selectedDocumentURLs.isEmpty {
-                        ScrollView(.horizontal) {
-                            HStack {
-                                ForEach(selectedDocumentURLs, id: \.self) { url in
-                                    VStack {
-                                        Image(systemName: "video.fill")
-                                            .font(.title)
-                                            .frame(width: 60, height: 60)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(8)
-                                        
-                                        Button(action: {
-                                            selectedDocumentURLs.removeAll { $0 == url }
-                                        }) {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundColor(.red)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    PhotosPicker(
-                        selection: $selectedVideoItems,
-                        matching: .videos,
-                        photoLibrary: .shared()
-                    ) {
-                        Label("Select Videos", systemImage: "video")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                    .onChange(of: selectedVideoItems) { _, newValue in
-                        for item in newValue {
-                            handleVideoSelection(item)
-                        }
-                    }
-                    
+                    videoSelectionView
                 case .document:
-                    Button(action: {
-                        showingDocumentPicker = true
-                    }) {
-                        Label("Select Documents", systemImage: "doc")
-                    }
-                    
+                    documentSelectionView
                 case .audio:
-                    Button(action: {
-                        // Audio selection action
-                    }) {
-                        Label("Select Audio", systemImage: "music.note")
-                    }
+                    audioSelectionView
                 }
             }
-            
+        }
+    }
+    
+    private var photoSelectionView: some View {
+        VStack {
+            if !selectedDocumentURLs.isEmpty {
+                selectedPhotosPreview
+            }
+            photoPickerButton
+        }
+    }
+    
+    private var selectedPhotosPreview: some View {
+        ScrollView(.horizontal) {
+            HStack {
+                ForEach(selectedDocumentURLs, id: \.self) { url in
+                    photoPreviewItem(url)
+                }
+            }
+        }
+    }
+    
+    private var uploadButton: some View {
+        Group {
             if !selectedDocumentURLs.isEmpty {
                 Button(action: {
                     Task {
@@ -155,46 +119,25 @@ struct EvidenceUploadView: View {
                 .disabled(isUploading || selectedDocumentURLs.isEmpty)
             }
         }
-        .navigationTitle("Upload \(evidenceType.rawValue.capitalized)")
-        .fileImporter(
-            isPresented: $showingDocumentPicker,
-            allowedContentTypes: [
-                .pdf,
-                .text,
-                .plainText,
-                .image,
-                .jpeg,
-                .png,
-                UTType("com.microsoft.word.doc")!,
-                UTType("org.openxmlformats.wordprocessingml.document")!,
-                .rtf,
-                .spreadsheet,
-                .presentation
-            ],
-            allowsMultipleSelection: true
-        ) { result in
-            switch result {
-            case .success(let urls):
-                for url in urls {
-                    handleFileSelection(url)
-                }
-            case .failure(let error):
-                errorMessage = error.localizedDescription
-                showingError = true
+    }
+    
+    private func handleDocumentPickerResult(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            for url in urls {
+                handleFileSelection(url)
             }
-        }
-        .alert("Error", isPresented: $showingError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage)
-        }
-        .onAppear {
-            setupViewController()
+        case .failure(let error):
+            errorMessage = error.localizedDescription
+            showingError = true
         }
     }
     
-    private var canUpload: Bool {
-        !selectedDocumentURLs.isEmpty  // Only check if files are selected
+    private var supportedDocumentTypes: [UTType] {
+        [.pdf, .text, .plainText, .image, .jpeg, .png,
+         UTType("com.microsoft.word.doc")!,
+         UTType("org.openxmlformats.wordprocessingml.document")!,
+         .rtf, .spreadsheet, .presentation]
     }
     
     private func handleFileSelection(_ url: URL) {
@@ -346,5 +289,149 @@ struct EvidenceUploadView: View {
             }
         }
         isUploading = false
+    }
+    
+    private var photoPickerButton: some View {
+        PhotosPicker(selection: $selectedPhotoItems,
+                    matching: .images,
+                    photoLibrary: .shared()) {
+            Label("Select Photos", systemImage: "photo.on.rectangle")
+        }
+        .onChange(of: selectedPhotoItems) { items in
+            for item in items {
+                handlePhotoSelection(item)
+            }
+        }
+    }
+    
+    private var videoSelectionView: some View {
+        VStack {
+            if !selectedDocumentURLs.isEmpty {
+                selectedVideosPreview
+            }
+            videoPickerButton
+        }
+    }
+    
+    private var videoPickerButton: some View {
+        PhotosPicker(selection: $selectedVideoItems,
+                    matching: .videos,
+                    photoLibrary: .shared()) {
+            Label("Select Video", systemImage: "video")
+        }
+        .onChange(of: selectedVideoItems) { items in
+            for item in items {
+                handleVideoSelection(item)
+            }
+        }
+    }
+    
+    private var documentSelectionView: some View {
+        VStack {
+            if !selectedDocumentURLs.isEmpty {
+                documentPreview
+            }
+            Button(action: {
+                showingDocumentPicker = true
+            }) {
+                Label("Select Document", systemImage: "doc")
+            }
+        }
+    }
+    
+    private var audioSelectionView: some View {
+        VStack {
+            if !selectedDocumentURLs.isEmpty {
+                audioPreview
+            }
+            Button(action: {
+                showingDocumentPicker = true
+            }) {
+                Label("Select Audio", systemImage: "music.note")
+            }
+        }
+    }
+    
+    private var selectedVideosPreview: some View {
+        ScrollView(.horizontal) {
+            HStack {
+                ForEach(selectedDocumentURLs, id: \.self) { url in
+                    videoPreviewItem(url)
+                }
+            }
+        }
+    }
+    
+    private var documentPreview: some View {
+        ScrollView(.horizontal) {
+            HStack {
+                ForEach(selectedDocumentURLs, id: \.self) { url in
+                    documentPreviewItem(url)
+                }
+            }
+        }
+    }
+    
+    private var audioPreview: some View {
+        ScrollView(.horizontal) {
+            HStack {
+                ForEach(selectedDocumentURLs, id: \.self) { url in
+                    audioPreviewItem(url)
+                }
+            }
+        }
+    }
+    
+    private func photoPreviewItem(_ url: URL) -> some View {
+        AsyncImage(url: url) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(height: 100)
+            case .failure:
+                Image(systemName: "photo")
+                    .frame(height: 100)
+            case .empty:
+                ProgressView()
+                    .frame(height: 100)
+            @unknown default:
+                EmptyView()
+            }
+        }
+    }
+    
+    private func videoPreviewItem(_ url: URL) -> some View {
+        Image(systemName: "video.fill")
+            .frame(width: 100, height: 100)
+            .background(Color.secondary.opacity(0.2))
+            .cornerRadius(8)
+    }
+    
+    private func documentPreviewItem(_ url: URL) -> some View {
+        VStack {
+            Image(systemName: "doc.fill")
+                .font(.largeTitle)
+            Text(url.lastPathComponent)
+                .font(.caption)
+                .lineLimit(1)
+        }
+        .frame(width: 100, height: 100)
+        .background(Color.secondary.opacity(0.2))
+        .cornerRadius(8)
+    }
+    
+    private func audioPreviewItem(_ url: URL) -> some View {
+        VStack {
+            Image(systemName: "music.note")
+                .font(.largeTitle)
+            Text(url.lastPathComponent)
+                .font(.caption)
+                .lineLimit(1)
+        }
+        .frame(width: 100, height: 100)
+        .background(Color.secondary.opacity(0.2))
+        .cornerRadius(8)
     }
 }

@@ -1,0 +1,14 @@
+{
+  "extends": "./node_modules/@microsoft/eslint-config-spfx/lib/profiles/default.js",
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json",
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "rules": {
+    "@typescript-eslint/no-extra-semi": "off",
+    "no-extra-semi": "off"
+  },
+  "ignorePatterns": ["*.js", "*.scss.ts"]
+} 

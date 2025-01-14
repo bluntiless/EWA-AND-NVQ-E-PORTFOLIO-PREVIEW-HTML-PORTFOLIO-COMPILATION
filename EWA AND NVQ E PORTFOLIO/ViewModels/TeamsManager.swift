@@ -1361,6 +1361,8 @@ class TeamsManager: ObservableObject {
         case invalidURL
         case invalidResponse
         case metadataFetchFailed
+        case requestFailed(Int)
+        case invalidMetadata
     }
     
     func makeAuthenticatedRequest(url urlString: String) async throws -> (Data, URLResponse) {
@@ -1390,41 +1392,56 @@ class TeamsManager: ObservableObject {
     private func makeRequestWithToken(urlString: String, token: String) async throws -> (Data, URLResponse) {
         // Convert SharePoint URL to Graph API URL
         let graphUrl: String
+        let driveId = "b!rEj3dxhmjU-uex6Sf60v6qOrqPeTBIhIjSIAaF2Acq7pMgSXCyLfQ5tkmDbarwlF"
+        var processedPath = ""
+        
         if urlString.contains("/sites/EWANVQLevel3ElectroTechnical/Shared%20Documents/") {
-            // Extract relative path and site info
             let siteId = "wrightspark625.sharepoint.com,77f748ac-6618-4f8d-ae7b-1e927fad2fea,f7a8aba3-0493-4888-8d22-00685d8072ae"
-            let driveId = "b!rEj3dxhmjU-uex6Sf60v6qOrqPeTBIhIjSIAaF2Acq7pMgSXCyLfQ5tkmDbarwlF"
             
-            let relativePath = urlString
-                .replacingOccurrences(of: "https://wrightspark625.sharepoint.com/sites/EWANVQLevel3ElectroTechnical/Shared%20Documents/", with: "")
-                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            // First decode any existing encoding
+            let decodedUrl = urlString.removingPercentEncoding ?? urlString
             
-            // Use appropriate endpoint based on file type
-            let fileExtension = (relativePath as NSString).pathExtension.lowercased()
-            
-            switch fileExtension {
-            case "pdf":
-                // For PDFs, use the /content endpoint
-                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath):/content"
-                print("📄 Using PDF content endpoint")
-                
-            case "mp4", "mov", "m4v":
-                // For videos, get a streaming URL
-                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath)"
-                print("🎥 Using video streaming endpoint")
-                
-            case "doc", "docx", "xls", "xlsx", "ppt", "pptx":
-                // For Office documents, use preview endpoint
-                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath):/preview"
-                print("📝 Using Office preview endpoint")
-                
-            default:
-                // Default to content endpoint for other files
-                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(relativePath):/content"
-                print("📥 Using default content endpoint")
+            // Extract the path after "Shared Documents"
+            guard let range = decodedUrl.range(of: "/Shared Documents/") else {
+                throw TeamsError.invalidURL
             }
             
-            print("📥 Using Graph API URL:", graphUrl)
+            let pathComponents = String(decodedUrl[range.upperBound...])
+                .components(separatedBy: "/")
+                .map { component -> String in
+                    if component.contains(",") || component.contains("-") {
+                        // For preview URLs, keep original format
+                        if urlString.contains(":/content") {
+                            return component
+                                .replacingOccurrences(of: ", ", with: "_")
+                                .replacingOccurrences(of: ",", with: "_")
+                                .replacingOccurrences(of: "-", with: "_")
+                                .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? component
+                        } else {
+                            // For metadata and other requests, maintain original format
+                            return component.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? component
+                        }
+                    } else {
+                        return component.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? component
+                    }
+                }
+            
+            processedPath = pathComponents.joined(separator: "/")
+            print("🔍 Processed path:", processedPath)
+            
+            // Check if this is a metadata request
+            if urlString.contains("?expand=listItem") {
+                // For metadata, try direct Graph API query first
+                let encodedFileName = pathComponents.last ?? ""
+                let folderPath = pathComponents.dropLast().joined(separator: "/")
+                
+                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(folderPath):/children?$filter=name eq '\(encodedFileName)'&expand=listItem($select=fields)"
+                print("📊 Using metadata query URL:", graphUrl)
+            } else {
+                // For content requests, use direct path
+                graphUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(processedPath):/content"
+                print("📄 Using content URL:", graphUrl)
+            }
         } else {
             graphUrl = urlString
         }
@@ -1436,56 +1453,83 @@ class TeamsManager: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
-        // For video streaming, we need to handle the response differently
-        if url.absoluteString.contains("/root:/") && !url.absoluteString.contains("/content") {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            if let httpResponse = response as? HTTPURLResponse {
-                print("📡 Response status:", httpResponse.statusCode)
-                
-                if httpResponse.statusCode == 401 {
-                    print("🔄 Token expired, clearing cache...")
-                    self.accessToken = nil
-                    self.cachedToken = nil
-                    self.tokenExpirationDate = nil
-                    return try await makeAuthenticatedRequest(url: urlString)
-                }
-                
-                // For video/preview endpoints, return the response data directly
-                if httpResponse.statusCode >= 400 {
-                    print("❌ Request failed with status:", httpResponse.statusCode)
-                    if let errorText = String(data: data, encoding: .utf8) {
-                        print("Error details:", errorText)
-                    }
-                }
-            }
-            
-            return (data, response)
-        }
-        
-        // For direct content downloads
         let (data, response) = try await URLSession.shared.data(for: request)
         
         if let httpResponse = response as? HTTPURLResponse {
             print("📡 Response status:", httpResponse.statusCode)
             
-            if httpResponse.statusCode == 401 {
+            switch httpResponse.statusCode {
+            case 200...299:
+                print("✅ Request successful")
+                return (data, response)
+            case 401:
                 print("🔄 Token expired, clearing cache...")
                 self.accessToken = nil
                 self.cachedToken = nil
                 self.tokenExpirationDate = nil
                 return try await makeAuthenticatedRequest(url: urlString)
-            }
-            
-            if httpResponse.statusCode >= 400 {
+            case 404:
+                print("⚠️ File not found, trying alternate approach...")
+                // Try with a different query approach for metadata
+                if urlString.contains("?expand=listItem") {
+                    let alternateUrl = "\(graphEndpoint)/drives/\(driveId)/root:/\(processedPath)?expand=listItem($select=fields)"
+                    print("🔄 Trying alternate metadata URL:", alternateUrl)
+                    
+                    let alternateRequest = URLRequest(url: URL(string: alternateUrl)!)
+                    return try await URLSession.shared.data(for: alternateRequest)
+                }
+                throw TeamsError.requestFailed(httpResponse.statusCode)
+            default:
                 print("❌ Request failed with status:", httpResponse.statusCode)
                 if let errorText = String(data: data, encoding: .utf8) {
                     print("Error details:", errorText)
                 }
+                throw TeamsError.requestFailed(httpResponse.statusCode)
             }
         }
         
         return (data, response)
+    }
+    
+    // Add helper method to parse metadata response
+    private func parseMetadataResponse(_ data: Data) throws -> EvidenceMetadata {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        
+        do {
+            let response = try decoder.decode(GraphFileResponse.self, from: data)
+            
+            // Handle both single item and collection responses
+            if let fields = response.listItem?.fields {
+                // Direct item response
+                return EvidenceMetadata(
+                    downloadUrl: response.downloadUrl,
+                    assessmentStatus: Evidence.AssessmentStatus(rawValue: fields.assessmentStatus ?? ""),
+                    assessorFeedback: fields.assessorFeedback,
+                    assessorName: fields.assessorName,
+                    assessmentDate: fields.assessmentDate
+                )
+            } else if let items = response.value,
+                      let firstItem = items.first,
+                      let fields = firstItem.listItem?.fields {
+                // Collection response
+                return EvidenceMetadata(
+                    downloadUrl: firstItem.downloadUrl,
+                    assessmentStatus: Evidence.AssessmentStatus(rawValue: fields.assessmentStatus ?? ""),
+                    assessorFeedback: fields.assessorFeedback,
+                    assessorName: fields.assessorName,
+                    assessmentDate: fields.assessmentDate
+                )
+            }
+            
+            print("❌ No valid metadata found in response")
+            print("Response data:", String(data: data, encoding: .utf8) ?? "")
+            throw TeamsError.invalidMetadata
+        } catch {
+            print("❌ Failed to parse metadata:", error)
+            print("Response data:", String(data: data, encoding: .utf8) ?? "")
+            throw TeamsError.invalidResponse
+        }
     }
 }
 
@@ -1507,6 +1551,49 @@ private struct SharePointError: Codable {
         let message: String
     }
     let error: ErrorDetails
+}
+
+// Add this structure to parse SharePoint properties
+private struct GraphFileResponse: Codable {
+    let value: [GraphFileItem]?
+    let downloadUrl: String?
+    let listItem: GraphListItem?
+    
+    enum CodingKeys: String, CodingKey {
+        case value
+        case downloadUrl = "@microsoft.graph.downloadUrl"
+        case listItem
+    }
+}
+
+private struct GraphFileItem: Codable {
+    let name: String
+    let downloadUrl: String?
+    let listItem: GraphListItem?
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case downloadUrl = "@microsoft.graph.downloadUrl"
+        case listItem
+    }
+}
+
+private struct GraphListItem: Codable {
+    let fields: GraphItemFields
+}
+
+private struct GraphItemFields: Codable {
+    let assessmentStatus: String?
+    let assessorFeedback: String?
+    let assessorName: String?
+    let assessmentDate: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case assessmentStatus = "AssessmentStatus"
+        case assessorFeedback = "AssessorFeedback"
+        case assessorName = "AssessorName"
+        case assessmentDate = "Modified"
+    }
 }
 
 // CRITICAL SYSTEM PROTOCOLS

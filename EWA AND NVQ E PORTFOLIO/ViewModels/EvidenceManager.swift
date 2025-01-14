@@ -142,49 +142,54 @@ class EvidenceManager: ObservableObject {
     }
     
     func refreshEvidenceStatus() async {
-        // Only refresh if enough time has passed
-        guard shouldRefresh() else {
-            print("Skipping refresh - too soon since last refresh")
-            return
-        }
-        
-        print("Starting evidence status refresh")
-        lastRefreshTime = Date()
+        print("\n=== Starting Evidence Status Refresh ===")
         
         do {
-            let updatedItems = try await storageManager.fetchEvidence()
-            let modifiedItems = updatedItems
+            // Get all evidence items, including hidden ones
+            let allItems = evidenceItems
             
-            for i in modifiedItems.indices {
-                // Use the actual SharePoint URL that was saved during upload
-                guard let sharePointUrl = modifiedItems[i].sharePointUrl else { 
-                    print("No SharePoint URL for item \(i)")
-                    continue 
-                }
-                
-                do {
-                    try await TeamsManager.shared.authenticate()
-                    
-                    // Use the exact URL that was saved during upload
-                    print("Fetching metadata for: \(sharePointUrl)")
-                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
-                    print("Received metadata: \(metadata)")
-                    
-                    // Update assessment info
-                    modifiedItems[i].updateAssessmentInfo(from: metadata)
-                    
-                    // Save to storage
-                    try await storageManager.updateEvidence(modifiedItems[i])
-                } catch {
-                    print("Error fetching metadata: \(error)")
+            for evidence in allItems {
+                if let sharePointUrl = evidence.sharePointUrl {
+                    do {
+                        // Ensure we're authenticated
+                        try await TeamsManager.shared.authenticate()
+                        
+                        print("\nRefreshing status for evidence:")
+                        print("- ID:", evidence.id)
+                        print("- URL:", sharePointUrl)
+                        print("- Current Status:", evidence.assessmentStatus.rawValue)
+                        
+                        // Fetch fresh metadata
+                        let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                        
+                        // Create updated evidence while preserving local properties
+                        var updatedEvidence = evidence
+                        let wasHidden = evidence.isHidden
+                        updatedEvidence.updateAssessmentInfo(from: metadata)
+                        updatedEvidence.isHidden = wasHidden
+                        
+                        // Update storage and UI
+                        try await storageManager.updateEvidence(updatedEvidence)
+                        
+                        if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                            evidenceItems[index] = updatedEvidence
+                            print("✅ Updated Status:", updatedEvidence.assessmentStatus.rawValue)
+                        }
+                    } catch {
+                        print("❌ Failed to refresh status for \(evidence.id): \(error)")
+                    }
                 }
             }
             
-            await MainActor.run {
-                self.evidenceItems = modifiedItems
-            }
+            // Update UI
+            objectWillChange.send()
+            updateProgress()
+            
+            // Update refresh timestamp
+            lastRefreshTime = Date()
+            
         } catch {
-            print("Error refreshing evidence status: \(error)")
+            print("❌ Failed to refresh evidence status: \(error)")
         }
     }
     
@@ -265,18 +270,13 @@ class EvidenceManager: ObservableObject {
                 do {
                     print("Attempting verification (\(attempt)/5) for: \(sharePointUrl)")
                     let metadata = try await fetchEvidenceMetadata(for: tempEvidence)
-                    if metadata != nil {
-                        print("✅ File verification successful on attempt \(attempt)")
-                        return true
-                    }
-                    // Exponential backoff with longer delays
-                    let delay = UInt64(pow(3.0, Double(attempt)) * 1_000_000_000)
-                    print("Waiting \(delay/1_000_000_000)s before next attempt...")
-                    try await Task.sleep(nanoseconds: delay)
+                    print("✅ File verification successful on attempt \(attempt)")
+                    return true
                 } catch {
                     print("⚠️ Verification attempt \(attempt) failed: \(error)")
                     if attempt == 5 { return false }
                     let delay = UInt64(pow(3.0, Double(attempt)) * 1_000_000_000)
+                    print("Waiting \(delay/1_000_000_000)s before next attempt...")
                     try await Task.sleep(nanoseconds: delay)
                 }
             }
@@ -306,27 +306,32 @@ class EvidenceManager: ObservableObject {
         }
     }
     
-    func unhideEvidence(_ evidence: Evidence) {
+    func unhideEvidence(_ evidence: Evidence) async {
+        print("\n=== Unhiding Evidence ===")
+        print("ID:", evidence.id)
+        
         var updatedItems = evidenceItems
         if let index = updatedItems.firstIndex(where: { $0.id == evidence.id }) {
-            updatedItems[index].isHidden = false
-            
-            // Immediately update UI
-            withAnimation {
-                self.evidenceItems = updatedItems
-                updateProgress()
+            // First refresh the status
+            do {
+                try await updateEvidence(evidence)
+            } catch {
+                print("⚠️ Status refresh failed during unhide: \(error)")
             }
             
-            // Save state and refresh metadata immediately
+            // Then unhide
+            updatedItems[index].isHidden = false
+            withAnimation {
+                self.evidenceItems = updatedItems
+            }
+            
+            // Save changes
             Task {
                 do {
                     try await storageManager.updateEvidence(updatedItems[index])
-                    saveHiddenStateToUserDefaults()
-                    
-                    // Refresh metadata immediately when unhiding
-                    await refreshEvidenceMetadata(for: updatedItems[index])
+                    print("✅ Evidence unhidden successfully")
                 } catch {
-                    print("Failed to save hidden state: \(error)")
+                    print("❌ Failed to save unhide state: \(error)")
                 }
             }
         }
@@ -384,8 +389,137 @@ class EvidenceManager: ObservableObject {
     
     // 2. When viewing specific evidence
     func viewEvidence(_ evidence: Evidence) async {
-        // Always refresh when viewing individual evidence
-        await refreshEvidenceMetadata(for: evidence)
+        print("\n=== Viewing Evidence ===")
+        print("ID:", evidence.id)
+        print("Hidden:", evidence.isHidden)
+        print("SharePoint URL:", evidence.sharePointUrl ?? "nil")
+        
+        // Always refresh metadata regardless of hidden state
+        do {
+            try await TeamsManager.shared.authenticate()
+            let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+            
+            await MainActor.run {
+                if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                    var updatedEvidence = evidenceItems[index]
+                    // Update metadata while preserving hidden state
+                    let wasHidden = updatedEvidence.isHidden
+                    updatedEvidence.updateAssessmentInfo(from: metadata)
+                    updatedEvidence.isHidden = wasHidden
+                    evidenceItems[index] = updatedEvidence
+                }
+            }
+        } catch {
+            print("❌ Failed to refresh metadata for hidden evidence: \(error)")
+        }
+    }
+    
+    // Add a new method specifically for previews
+    func getPreviewUrl(for evidence: Evidence) async throws -> URL? {
+        print("\n=== Getting Preview URL ===")
+        print("Evidence ID: \(evidence.id)")
+        print("Hidden:", evidence.isHidden)
+        
+        guard let sharePointUrl = evidence.sharePointUrl else {
+            print("❌ No SharePoint URL available")
+            throw EvidenceError.invalidURL
+        }
+        
+        // Use sharePointUrl in authentication
+        try await TeamsManager.shared.authenticate()
+        
+        // Get fresh metadata using the sharePointUrl
+        let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+        
+        if let downloadUrl = metadata.downloadUrl,
+           let url = URL(string: downloadUrl) {
+            print("✅ Successfully retrieved preview URL")
+            return url
+        }
+        
+        print("❌ No download URL available in metadata")
+        throw EvidenceError.invalidURL
+    }
+    
+    @MainActor
+    func updateEvidence(_ evidence: Evidence) async throws {
+        print("\n=== Updating Evidence Status ===")
+        print("ID:", evidence.id)
+        print("Previous Status:", evidence.assessmentStatus.rawValue)
+        
+        // First refresh metadata to ensure we have latest status
+        if let sharePointUrl = evidence.sharePointUrl {
+            do {
+                try await TeamsManager.shared.authenticate()
+                let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                
+                // Create updated evidence with new status but preserve local properties
+                let updatedEvidence = evidence
+                updatedEvidence.updateAssessmentInfo(from: metadata)
+                
+                // Update local storage
+                try await storageManager.updateEvidence(updatedEvidence)
+                
+                // Update in-memory array and ensure UI updates
+                if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                    evidenceItems[index] = updatedEvidence
+                    print("New Status:", updatedEvidence.assessmentStatus.rawValue)
+                } else {
+                    print("Evidence not found in local store, adding new.")
+                    evidenceItems.append(updatedEvidence)
+                }
+                
+                // Trigger UI updates
+                objectWillChange.send()
+                updateProgress()
+            } catch {
+                print("❌ Failed to update evidence status:", error)
+                throw error
+            }
+        }
+    }
+    
+    @MainActor
+    func refreshAndUpdateEvidenceStatus() async {
+        print("Refreshing evidence status...")
+        guard shouldRefresh() else {
+            print("Refresh not needed based on the time interval.")
+            return
+        }
+
+        do {
+            let updatedItems = try await fetchUpdatedEvidenceFromSharePoint()
+            for item in updatedItems {
+                print("Updating status for item ID: \(item.id) with new status: \(item.assessmentStatus)")
+                try await updateEvidence(item)
+            }
+            print("Successfully updated all items.")
+        } catch {
+            print("Failed to refresh evidence status: \(error)")
+        }
+    }
+
+    private func fetchUpdatedEvidenceFromSharePoint() async throws -> [Evidence] {
+        var updatedEvidence: [Evidence] = []
+        
+        for evidence in evidenceItems {
+            if let sharePointUrl = evidence.sharePointUrl {
+                do {
+                    try await TeamsManager.shared.authenticate()
+                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                    var updated = evidence
+                    updated.updateAssessmentInfo(from: metadata)
+                    updatedEvidence.append(updated)
+                } catch {
+                    print("Failed to fetch metadata for \(evidence.id): \(error)")
+                    updatedEvidence.append(evidence)
+                }
+            } else {
+                updatedEvidence.append(evidence)
+            }
+        }
+        
+        return updatedEvidence
     }
 } 
 

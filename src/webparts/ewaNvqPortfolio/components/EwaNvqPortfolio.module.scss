@@ -1,0 +1,41 @@
+@import '~@microsoft/sp-office-ui-fabric-core/dist/sass/SPFabricCore.scss';
+
+.ewaNvqPortfolio {
+  overflow: hidden;
+  padding: 1em;
+  color: "[theme:bodyText, default: #323130]";
+}
+
+.container {
+  max-width: 700px;
+  margin: 0px auto;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 25px 50px 0 rgba(0, 0, 0, 0.1);
+}
+
+.row {
+  padding: 20px;
+}
+
+.teams {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.welcome {
+  text-align: center;
+  padding: 20px;
+  font-size: 24px;
+}
+
+.welcomeImage {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+}
+
+.links {
+  text-align: center;
+  color: "[theme:link, default:#03787c]";
+  text-decoration: none;
+} 

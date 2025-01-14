@@ -43,14 +43,37 @@ struct EvidenceListView: View {
                 List {
                     ForEach(evidenceManager.evidenceItems.filter { $0.isHidden }) { evidence in
                         EvidenceRow(evidence: evidence)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedEvidence = evidence
+                                showingPreview = true
+                            }
                             .swipeActions(edge: .trailing) {
-                                Button {
-                                    evidenceManager.unhideEvidence(evidence)
-                                } label: {
+                                Button(action: {
+                                    Task {
+                                        await evidenceManager.unhideEvidence(evidence)
+                                    }
+                                }) {
                                     Label("Unhide", systemImage: "eye")
                                 }
                                 .tint(.blue)
                             }
+                    }
+                }
+                .sheet(isPresented: $showingPreview) {
+                    if let evidence = selectedEvidence {
+                        NavigationStack {
+                            EvidencePreviewView(evidence: evidence)
+                                .navigationTitle(evidence.title)
+                                .navigationBarTitleDisplayMode(.inline)
+                                .toolbar {
+                                    ToolbarItem(placement: .topBarTrailing) {
+                                        Button("Done") {
+                                            showingPreview = false
+                                        }
+                                    }
+                                }
+                        }
                     }
                 }
                 .accessibilityIdentifier("HiddenList")
@@ -61,22 +84,6 @@ struct EvidenceListView: View {
                             showingHidden = false
                         }
                     }
-                }
-            }
-        }
-        .sheet(isPresented: $showingPreview) {
-            if let evidence = selectedEvidence {
-                NavigationStack {
-                    EvidencePreviewView(evidence: evidence)
-                        .navigationTitle(evidence.title)
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") {
-                                    showingPreview = false
-                                }
-                            }
-                        }
                 }
             }
         }
