@@ -3,7 +3,8 @@ import SwiftUI
 struct EvidenceListView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
     @State private var selectedEvidence: Evidence?
-    @State private var showingPreview = false
+    @State private var showingMainPreview = false
+    @State private var showingHiddenPreview = false
     @State private var showingHidden = false
     
     var body: some View {
@@ -11,7 +12,7 @@ struct EvidenceListView: View {
             ForEach(evidenceManager.evidenceItems.filter { !$0.isHidden }) { evidence in
                 Button {
                     selectedEvidence = evidence
-                    showingPreview = true
+                    showingMainPreview = true
                 } label: {
                     EvidenceRow(evidence: evidence)
                 }
@@ -38,6 +39,22 @@ struct EvidenceListView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingMainPreview) {
+            if let evidence = selectedEvidence {
+                NavigationStack {
+                    EvidencePreviewView(evidence: evidence)
+                        .navigationTitle(evidence.title)
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") {
+                                    showingMainPreview = false
+                                }
+                            }
+                        }
+                }
+            }
+        }
         .sheet(isPresented: $showingHidden) {
             NavigationView {
                 List {
@@ -46,7 +63,7 @@ struct EvidenceListView: View {
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedEvidence = evidence
-                                showingPreview = true
+                                showingHiddenPreview = true
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(action: {
@@ -60,7 +77,7 @@ struct EvidenceListView: View {
                             }
                     }
                 }
-                .sheet(isPresented: $showingPreview) {
+                .sheet(isPresented: $showingHiddenPreview) {
                     if let evidence = selectedEvidence {
                         NavigationStack {
                             EvidencePreviewView(evidence: evidence)
@@ -69,7 +86,7 @@ struct EvidenceListView: View {
                                 .toolbar {
                                     ToolbarItem(placement: .topBarTrailing) {
                                         Button("Done") {
-                                            showingPreview = false
+                                            showingHiddenPreview = false
                                         }
                                     }
                                 }
