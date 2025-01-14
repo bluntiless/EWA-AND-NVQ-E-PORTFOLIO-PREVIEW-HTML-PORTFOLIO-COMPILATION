@@ -447,26 +447,21 @@ class EvidenceManager: ObservableObject {
         print("ID:", evidence.id)
         print("Previous Status:", evidence.assessmentStatus.rawValue)
         
-        // First refresh metadata to ensure we have latest status
         if let sharePointUrl = evidence.sharePointUrl {
             do {
                 try await TeamsManager.shared.authenticate()
                 let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
                 
-                // Create updated evidence with new status but preserve local properties
-                let updatedEvidence = evidence
+                // Create updated evidence with new status
+                var updatedEvidence = evidence
                 updatedEvidence.updateAssessmentInfo(from: metadata)
                 
-                // Update local storage
+                // Update storage and UI
                 try await storageManager.updateEvidence(updatedEvidence)
                 
-                // Update in-memory array and ensure UI updates
                 if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
                     evidenceItems[index] = updatedEvidence
                     print("New Status:", updatedEvidence.assessmentStatus.rawValue)
-                } else {
-                    print("Evidence not found in local store, adding new.")
-                    evidenceItems.append(updatedEvidence)
                 }
                 
                 // Trigger UI updates

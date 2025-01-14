@@ -5,6 +5,7 @@ import QuickLook
 
 struct EvidencePreviewView: View {
     let evidence: Evidence
+    @EnvironmentObject var evidenceManager: EvidenceManager
     @StateObject private var viewModel: EvidencePreviewViewModel
     @State private var previewImage: UIImage?
     @State private var isLoading = true
@@ -115,6 +116,16 @@ struct EvidencePreviewView: View {
         }
         .onAppear {
             loadPreviewImage()
+            Task {
+                // Refresh status when preview opens
+                try? await evidenceManager.updateEvidence(evidence)
+            }
+        }
+        .onChange(of: viewModel.assessmentStatus) { newStatus in
+            Task {
+                // Refresh when status changes
+                try? await evidenceManager.updateEvidence(evidence)
+            }
         }
     }
     
