@@ -43,10 +43,8 @@ struct EvidencePreviewView: View {
                             .cornerRadius(12)
                     }
                 case .document:
-                    if let url = evidence.resolvedFileURL {
-                        PDFPreview(url: url)
-                            .frame(height: 300)
-                            .cornerRadius(12)
+                    if let sharePointUrl = evidence.sharePointUrl {
+                        DocumentPreviewView(evidence: evidence, evidenceManager: evidenceManager)
                     }
                 case .audio:
                     if let url = evidence.resolvedFileURL {
@@ -359,6 +357,86 @@ struct VideoPreviewView: View {
                 }
             } catch {
                 print("❌ Failed to load video: \(error)")
+                isLoading = false
+            }
+        }
+    }
+}
+
+// Add this new view struct
+struct DocumentPreviewView: View {
+    let evidence: Evidence
+    let evidenceManager: EvidenceManager
+    @State private var pdfUrl: URL?
+    @State private var isLoading = true
+    
+    var body: some View {
+        ZStack {
+            if let url = pdfUrl {
+                PDFPreview(url: url)
+            }
+            
+            if isLoading {
+                ProgressView()
+            }
+        }
+        .frame(height: 300)
+        .cornerRadius(12)
+        .onAppear {
+            loadDocument()
+        }
+    }
+    
+    private func loadDocument() {
+        Task {
+            do {
+                print("📄 Starting document load...")
+                
+                // Attempt to construct the correct URL for the SharePoint file
+                guard let sharePointUrl = evidence.sharePointUrl?.replacingOccurrences(of: "\\", with: "/") else {
+                    print("Invalid URL format")
+                    return
+                }
+                
+                print("📑 Trying SharePoint document URL: \(sharePointUrl)")
+                
+                // Fetch metadata using the corrected URL
+                let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+                
+                // First try download URL if available
+                if let downloadUrl = metadata.downloadUrl {
+                    print("📥 Using direct download URL: \(downloadUrl)")
+                    let (data, _) = try await TeamsManager.shared.makeAuthenticatedRequest(url: downloadUrl)
+                    
+                    // Save data to temporary file
+                    let tempUrl = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pdf")
+                    try data.write(to: tempUrl)
+                    
+                    await MainActor.run {
+                        self.pdfUrl = tempUrl
+                        self.isLoading = false
+                    }
+                    return
+                }
+                
+                // Fallback to webUrl if download URL not available
+                if let webUrl = metadata.webUrl {
+                    print("📥 Using web URL: \(webUrl)")
+                    let (data, _) = try await TeamsManager.shared.makeAuthenticatedRequest(url: webUrl)
+                    
+                    // Save data to temporary file
+                    let tempUrl = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".pdf")
+                    try data.write(to: tempUrl)
+                    
+                    await MainActor.run {
+                        self.pdfUrl = tempUrl
+                        self.isLoading = false
+                    }
+                } else {
+                    print("❌ No valid URL available for document")
+                }
+            } catch {
+                print("❌ Failed to load document: \(error)")
                 isLoading = false
             }
         }
