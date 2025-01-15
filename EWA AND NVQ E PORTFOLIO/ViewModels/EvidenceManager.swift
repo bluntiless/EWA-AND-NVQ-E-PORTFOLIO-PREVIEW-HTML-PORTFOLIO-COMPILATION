@@ -144,53 +144,34 @@ class EvidenceManager: ObservableObject {
     func refreshEvidenceStatus() async {
         print("\n=== Starting Evidence Status Refresh ===")
         
-        do {
-            // Get all evidence items, including hidden ones
-            let allItems = evidenceItems
-            
-            for evidence in allItems {
-                if let sharePointUrl = evidence.sharePointUrl {
-                    do {
-                        // Ensure we're authenticated
-                        try await TeamsManager.shared.authenticate()
-                        
-                        print("\nRefreshing status for evidence:")
-                        print("- ID:", evidence.id)
-                        print("- URL:", sharePointUrl)
-                        print("- Current Status:", evidence.assessmentStatus.rawValue)
-                        
-                        // Fetch fresh metadata
-                        let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
-                        
-                        // Create updated evidence while preserving local properties
-                        var updatedEvidence = evidence
-                        let wasHidden = evidence.isHidden
-                        updatedEvidence.updateAssessmentInfo(from: metadata)
-                        updatedEvidence.isHidden = wasHidden
-                        
-                        // Update storage and UI
+        for evidence in evidenceItems {
+            if let sharePointUrl = evidence.sharePointUrl {
+                do {
+                    // Store current hidden state
+                    let wasHidden = evidence.isHidden
+                    
+                    // Get fresh metadata
+                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                    
+                    // Update while preserving hidden state
+                    var updatedEvidence = evidence
+                    updatedEvidence.updateAssessmentInfo(from: metadata)
+                    updatedEvidence.isHidden = wasHidden  // Explicitly preserve hidden state
+                    
+                    // Update storage and UI
+                    if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                        evidenceItems[index] = updatedEvidence
                         try await storageManager.updateEvidence(updatedEvidence)
-                        
-                        if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
-                            evidenceItems[index] = updatedEvidence
-                            print("✅ Updated Status:", updatedEvidence.assessmentStatus.rawValue)
-                        }
-                    } catch {
-                        print("❌ Failed to refresh status for \(evidence.id): \(error)")
                     }
+                } catch {
+                    print("❌ Failed to refresh status for \(evidence.id): \(error)")
                 }
             }
-            
-            // Update UI
-            objectWillChange.send()
-            updateProgress()
-            
-            // Update refresh timestamp
-            lastRefreshTime = Date()
-            
-        } catch {
-            print("❌ Failed to refresh evidence status: \(error)")
         }
+        
+        // Trigger UI updates
+        objectWillChange.send()
+        updateProgress()
     }
     
     func fetchEvidenceMetadata(for evidence: Evidence) async throws -> EvidenceMetadata {

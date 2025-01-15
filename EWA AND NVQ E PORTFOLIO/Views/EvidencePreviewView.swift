@@ -37,8 +37,8 @@ struct EvidencePreviewView: View {
                             .frame(height: 200)
                     }
                 case .video:
-                    if let url = evidence.resolvedFileURL {
-                        VideoPlayer(player: AVPlayer(url: url))
+                    if let sharePointUrl = evidence.sharePointUrl {
+                        VideoPreviewView(evidence: evidence, evidenceManager: evidenceManager)
                             .frame(height: 300)
                             .cornerRadius(12)
                     }
@@ -115,13 +115,10 @@ struct EvidencePreviewView: View {
             .padding()
         }
         .onAppear {
+            viewModel.setEvidenceManager(evidenceManager)
             loadPreviewImage()
-            Task {
-                // Refresh status when preview opens
-                try? await evidenceManager.updateEvidence(evidence)
-            }
         }
-        .onChange(of: viewModel.assessmentStatus) { newStatus in
+        .onChange(of: viewModel.assessmentStatus) { _ in
             Task {
                 // Refresh when status changes
                 try? await evidenceManager.updateEvidence(evidence)
@@ -204,6 +201,8 @@ struct EvidencePreviewView: View {
 // Keep existing ViewModel
 class EvidencePreviewViewModel: ObservableObject {
     private let evidence: Evidence
+    private var evidenceManager: EvidenceManager?
+    private var isUpdating = false  // Add guard against recursive updates
     
     @Published var assessmentStatus: Evidence.AssessmentStatus
     @Published var assessorFeedback: String?
@@ -222,17 +221,43 @@ class EvidencePreviewViewModel: ObservableObject {
         self.assessmentDate = evidence.assessmentDate
     }
     
+    func setEvidenceManager(_ manager: EvidenceManager) {
+        self.evidenceManager = manager
+    }
+    
     func refreshMetadata() async {
+        guard !isUpdating else { return }  // Prevent recursive updates
+        isUpdating = true
+        defer { isUpdating = false }
+        
         do {
-            try await TeamsManager.shared.refreshEvidenceMetadata(for: evidence)
+            let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+            
             await MainActor.run {
-                self.assessmentStatus = evidence.assessmentStatus
-                self.assessorFeedback = evidence.assessorFeedback
-                self.assessorName = evidence.assessorName
-                self.assessmentDate = evidence.assessmentDate
+                if let status = metadata.assessmentStatus {
+                    // Update view model
+                    self.assessmentStatus = status
+                    self.assessorFeedback = metadata.assessorFeedback
+                    self.assessorName = metadata.assessorName
+                    self.assessmentDate = metadata.assessmentDate
+                    
+                    // Create updated evidence preserving hidden state
+                    var updatedEvidence = evidence
+                    let wasHidden = evidence.isHidden
+                    updatedEvidence.assessmentStatus = status
+                    updatedEvidence.assessorFeedback = metadata.assessorFeedback
+                    updatedEvidence.assessorName = metadata.assessorName
+                    updatedEvidence.assessmentDate = metadata.assessmentDate
+                    updatedEvidence.isHidden = wasHidden  // Explicitly preserve hidden state
+                    
+                    // Single update to evidence manager
+                    Task {
+                        try? await evidenceManager?.updateEvidence(updatedEvidence)
+                    }
+                }
             }
         } catch {
-            print("Error refreshing metadata:", error)
+            print("❌ Error refreshing metadata: \(error)")
         }
     }
 }
@@ -263,5 +288,79 @@ struct AudioPlayerView: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+    }
+}
+
+// Add this new view struct
+struct VideoPreviewView: View {
+    let evidence: Evidence
+    let evidenceManager: EvidenceManager
+    @State private var player: AVPlayer?
+    @State private var isLoading = true
+    
+    var body: some View {
+        ZStack {
+            if let player = player {
+                VideoPlayer(player: player)
+            }
+            
+            if isLoading {
+                ProgressView()
+            }
+        }
+        .onAppear {
+            loadVideo()
+        }
+    }
+    
+    private func loadVideo() {
+        Task {
+            do {
+                print("🎥 Starting video load...")
+                
+                // Attempt to construct the correct URL for the SharePoint file
+                guard let sharePointUrl = evidence.sharePointUrl?.replacingOccurrences(of: "\\", with: "/"),
+                      let url = URL(string: sharePointUrl) else {
+                    print("Invalid URL format")
+                    return
+                }
+                
+                print("🎬 Trying SharePoint video URL: \(sharePointUrl)")
+                
+                // Fetch metadata using the corrected URL
+                let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+                
+                // First try download URL if available
+                if let downloadUrl = metadata.downloadUrl,
+                   let downloadURL = URL(string: downloadUrl) {
+                    print("📥 Using direct download URL: \(downloadUrl)")
+                    await MainActor.run {
+                        self.player = AVPlayer(url: downloadURL)
+                        self.isLoading = false
+                    }
+                    return
+                }
+                
+                // Fallback to webUrl if download URL not available
+                if let webUrl = metadata.webUrl,
+                   let videoURL = URL(string: webUrl) {
+                    print("📥 Using web URL: \(webUrl)")
+                    // Use TeamsManager to make authenticated request
+                    let (_, response) = try await TeamsManager.shared.makeAuthenticatedRequest(url: webUrl)
+                    if let httpResponse = response as? HTTPURLResponse,
+                       let streamUrl = httpResponse.url {
+                        await MainActor.run {
+                            self.player = AVPlayer(url: streamUrl)
+                            self.isLoading = false
+                        }
+                    }
+                } else {
+                    print("❌ No valid URL available for video")
+                }
+            } catch {
+                print("❌ Failed to load video: \(error)")
+                isLoading = false
+            }
+        }
     }
 } 
