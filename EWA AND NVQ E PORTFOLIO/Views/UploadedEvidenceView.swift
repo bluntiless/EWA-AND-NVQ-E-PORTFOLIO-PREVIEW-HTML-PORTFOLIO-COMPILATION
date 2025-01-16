@@ -10,12 +10,14 @@ struct UploadedEvidenceView: View {
     let criteriaCode: String
     
     func updateFilteredEvidence() {
+        print("Updating filtered evidence for criteria: \(criteriaCode)")
         filteredEvidence = evidenceManager.evidenceItems.filter { evidence in
             evidence.isUploaded && 
             evidence.unitCode == unitCode &&
             (evidence.criteriaArray.contains(criteriaCode) || 
              evidence.associatedCriteria.contains(criteriaCode))
         }
+        print("Found \(filteredEvidence.count) matching evidence items")
     }
     
     var body: some View {
@@ -41,6 +43,11 @@ struct UploadedEvidenceView: View {
             updateFilteredEvidence()
         }
         .onReceive(evidenceManager.$evidenceItems) { _ in
+            print("Evidence items updated, refreshing view")
+            updateFilteredEvidence()
+        }
+        .onChange(of: evidenceManager.lastUploadTimestamp) { _ in
+            print("Upload timestamp changed, refreshing view")
             updateFilteredEvidence()
         }
         .sheet(isPresented: $showingPreview) {

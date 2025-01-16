@@ -4,8 +4,8 @@ import AVKit
 import QuickLook
 
 struct EvidencePreviewView: View {
-    let evidence: Evidence
     @EnvironmentObject var evidenceManager: EvidenceManager
+    let evidence: Evidence
     @StateObject private var viewModel: EvidencePreviewViewModel
     @State private var previewImage: UIImage?
     @State private var isLoading = true
@@ -57,6 +57,17 @@ struct EvidencePreviewView: View {
                 }
                 .padding(.horizontal)
                 
+                // Status Section with immediate updates
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Status:")
+                        .font(.headline)
+                    HStack {
+                        Image(systemName: evidence.statusDisplayInfo.icon)
+                            .foregroundColor(evidence.statusDisplayInfo.color)
+                        Text(evidence.displayStatus)
+                    }
+                }
+                
                 // Assessment Details - Using ViewModel
                 VStack(alignment: .leading, spacing: 16) {
                     HStack {
@@ -102,11 +113,18 @@ struct EvidencePreviewView: View {
                             .padding(.horizontal)
                     }
                     
-                    // Keep existing refresh functionality
+                    // Refresh Button
                     Button(action: {
                         Task {
                             isRefreshing = true
                             await viewModel.refreshMetadata()
+                            do {
+                                try await evidenceManager.updateEvidence(evidence)
+                                // Force UI update for all views
+                                await evidenceManager.loadInitialData()
+                            } catch {
+                                print("Failed to update evidence: \(error)")
+                            }
                             isRefreshing = false
                         }
                     }) {
@@ -125,11 +143,26 @@ struct EvidencePreviewView: View {
         .onAppear {
             viewModel.setEvidenceManager(evidenceManager)
             loadPreviewImage()
-        }
-        .onChange(of: viewModel.assessmentStatus) { _ in
             Task {
-                // Refresh when status changes
-                try? await evidenceManager.updateEvidence(evidence)
+                await viewModel.refreshMetadata()
+                do {
+                    try await evidenceManager.updateEvidence(evidence)
+                    // Refresh all evidence on appear
+                    await evidenceManager.loadInitialData()
+                } catch {
+                    print("Failed to update evidence: \(error)")
+                }
+            }
+        }
+        .onChange(of: viewModel.assessmentStatus) { oldValue, newValue in
+            Task {
+                do {
+                    try await evidenceManager.updateEvidence(evidence)
+                    // Ensure all views are updated
+                    await evidenceManager.loadInitialData()
+                } catch {
+                    print("Failed to update evidence: \(error)")
+                }
             }
         }
     }
