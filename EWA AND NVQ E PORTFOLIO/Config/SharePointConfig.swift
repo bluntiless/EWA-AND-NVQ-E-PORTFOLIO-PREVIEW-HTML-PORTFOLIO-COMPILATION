@@ -21,7 +21,16 @@ struct SharePointConfig {
         return allowedFileTypes.contains(fileExtension)
     }
     
-    static func evidencePath(for evidence: Evidence) -> String {
-        return "\(evidenceLibrary)/\(evidence.unitCode)/\(evidence.criteriaCode)"
+    static func evidencePath(for evidence: Evidence, userEmail: String) -> String {
+        let candidatePath = getCandidatePath(for: userEmail)
+        return "\(candidatePath)/\(evidence.unitCode)/\(evidence.criteriaCode)"
+    }
+    
+    static let baseUrl = "wrightspark625.sharepoint.com"
+    static let siteId = "..."
+    
+    static func getCandidatePath(for userEmail: String) -> String {
+        let username = userEmail.split(separator: "@").first ?? ""
+        return "\(evidenceLibrary)/Candidates/\(username)"
     }
 } 

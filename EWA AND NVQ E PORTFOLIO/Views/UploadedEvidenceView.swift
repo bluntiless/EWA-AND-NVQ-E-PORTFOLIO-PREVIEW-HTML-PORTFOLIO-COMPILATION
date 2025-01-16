@@ -13,7 +13,8 @@ struct UploadedEvidenceView: View {
         filteredEvidence = evidenceManager.evidenceItems.filter { evidence in
             evidence.isUploaded && 
             evidence.unitCode == unitCode &&
-            evidence.criteriaCode == criteriaCode
+            (evidence.criteriaArray.contains(criteriaCode) || 
+             evidence.associatedCriteria.contains(criteriaCode))
         }
     }
     

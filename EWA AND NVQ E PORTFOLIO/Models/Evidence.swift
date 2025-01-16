@@ -373,6 +373,26 @@ class Evidence: ObservableObject, Identifiable, Codable {
         }
         return assessmentStatus.displayName
     }
+    
+    var criteriaArray: [String] {
+        // Convert underscore-separated string to array
+        criteriaCode.split(separator: "_").map(String.init)
+    }
+    
+    var displayCriteriaCode: String {
+        // For display purposes, show with commas and spaces
+        criteriaArray.joined(separator: ", ")
+    }
+    
+    var sharePointCriteriaCode: String {
+        // Ensure we always use underscores for SharePoint
+        criteriaArray.joined(separator: "_")
+    }
+    
+    var criteriaDescriptionArray: [String] {
+        // Split descriptions that were joined with pipes
+        criteriaDescription.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+    }
 }
 
 extension Evidence.AssessmentStatus {

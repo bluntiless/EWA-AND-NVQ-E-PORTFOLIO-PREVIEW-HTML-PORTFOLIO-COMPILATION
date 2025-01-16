@@ -6,6 +6,7 @@ struct EvidenceUploadContainerView: View {
     let unitCode: String
     let criteriaDescription: String
     let onEvidenceUploaded: (Evidence) -> Void
+    let selectedCriteria: [PerformanceCriteria]
     
     var body: some View {
         List {
@@ -15,7 +16,8 @@ struct EvidenceUploadContainerView: View {
                     criteriaCode: criteriaCode,
                     unitCode: unitCode,
                     criteriaDescription: criteriaDescription,
-                    onEvidenceUploaded: onEvidenceUploaded
+                    onEvidenceUploaded: onEvidenceUploaded,
+                    selectedCriteria: selectedCriteria
                 )) {
                     Label(type.rawValue, systemImage: type.iconName)
                 }

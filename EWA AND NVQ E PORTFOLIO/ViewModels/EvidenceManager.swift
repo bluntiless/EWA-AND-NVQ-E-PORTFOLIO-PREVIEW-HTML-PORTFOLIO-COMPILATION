@@ -29,11 +29,11 @@ class EvidenceManager: ObservableObject {
     
     private func loadHiddenState() {
         if let data = UserDefaults.standard.data(forKey: hiddenStateKey),
-           let hiddenItems = try? JSONDecoder().decode([UUID: Bool].self, from: data) {
-            // Restore hidden state to existing items
+           let hiddenItems = try? JSONDecoder().decode([String: Bool].self, from: data) {
+            // Restore hidden state using string IDs
             evidenceItems = evidenceItems.map { evidence in
                 var updatedEvidence = evidence
-                updatedEvidence.isHidden = hiddenItems[evidence.id] ?? false
+                updatedEvidence.isHidden = hiddenItems[evidence.id.uuidString] ?? false
                 return updatedEvidence
             }
         }
@@ -127,6 +127,7 @@ class EvidenceManager: ObservableObject {
     }
     
     func uploadEvidence(_ evidence: Evidence) async throws {
+        let uploadPath = try await TeamsManager.shared.getEvidenceUploadPath(for: evidence)
         try await uploadMultipleEvidence([evidence])
     }
     
@@ -319,9 +320,12 @@ class EvidenceManager: ObservableObject {
     }
     
     private func saveHiddenStateToUserDefaults() {
-        let hiddenItems = Dictionary(uniqueKeysWithValues: 
-            evidenceItems.map { ($0.id, $0.isHidden) }
+        // Create dictionary with string representation of UUIDs as keys
+        let hiddenItems = Dictionary(
+            evidenceItems.map { ($0.id.uuidString, $0.isHidden) },
+            uniquingKeysWith: { first, _ in first }  // Keep first value in case of duplicates
         )
+        
         if let data = try? JSONEncoder().encode(hiddenItems) {
             UserDefaults.standard.set(data, forKey: hiddenStateKey)
         }
@@ -496,6 +500,13 @@ class EvidenceManager: ObservableObject {
         }
         
         return updatedEvidence
+    }
+    
+    func getEvidenceForCriteria(_ criteriaCode: String) -> [Evidence] {
+        evidenceItems.filter { evidence in
+            evidence.criteriaArray.contains(criteriaCode) ||
+            evidence.associatedCriteria.contains(criteriaCode)
+        }
     }
 } 
 

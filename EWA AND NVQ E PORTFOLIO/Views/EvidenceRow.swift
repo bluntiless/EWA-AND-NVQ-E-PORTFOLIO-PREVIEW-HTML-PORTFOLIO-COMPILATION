@@ -62,6 +62,10 @@ struct EvidenceRow: View {
                 Text("Uploaded \(evidence.dateUploaded.formatted(date: .abbreviated, time: .shortened))")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                
+                Text("Criteria: \(evidence.displayCriteriaCode)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             .padding()
             .background(Color(.systemBackground))

@@ -31,6 +31,23 @@ struct EvidenceUploadView: View {
     let unitCode: String
     let criteriaDescription: String
     let onEvidenceUploaded: (Evidence) -> Void
+    let selectedCriteria: [PerformanceCriteria]
+    
+    init(
+        evidenceType: Evidence.EvidenceType,
+        criteriaCode: String,
+        unitCode: String,
+        criteriaDescription: String,
+        onEvidenceUploaded: @escaping (Evidence) -> Void,
+        selectedCriteria: [PerformanceCriteria]
+    ) {
+        self.evidenceType = evidenceType
+        self.criteriaCode = criteriaCode
+        self.unitCode = unitCode
+        self.criteriaDescription = criteriaDescription
+        self.onEvidenceUploaded = onEvidenceUploaded
+        self.selectedCriteria = selectedCriteria
+    }
     
     var body: some View {
         formContent
@@ -247,15 +264,18 @@ struct EvidenceUploadView: View {
                 relativeTo: nil
             )
             
+            // Create underscore-separated criteria string
+            let criteriaString = selectedCriteria.map { $0.code }.joined(separator: "_")
+            
             let evidence = Evidence(
-                criteriaCode: criteriaCode,
+                criteriaCode: criteriaString,
                 unitCode: unitCode,
                 type: evidenceType,
                 title: title,
                 description: description,
                 bookmarkData: bookmarkData,
                 fileURL: fileURL,
-                associatedCriteria: [criteriaCode],
+                associatedCriteria: selectedCriteria.map { $0.code },  // Keep as array for local use
                 criteriaDescription: criteriaDescription
             )
             
@@ -278,17 +298,31 @@ struct EvidenceUploadView: View {
     
     private func uploadMultipleEvidence() async {
         isUploading = true
-        var completedUploads = 0
-        for url in selectedDocumentURLs {
+        
+        // Create array of criteria codes joined with underscores for SharePoint
+        let criteriaCodes = selectedCriteria.map { $0.code }
+        let criteriaString = criteriaCodes.joined(separator: "_")
+        
+        for (index, url) in selectedDocumentURLs.enumerated() {
             do {
+                let evidence = Evidence(
+                    criteriaCode: criteriaString,  // Use underscore format for SharePoint
+                    unitCode: unitCode,
+                    type: evidenceType,
+                    title: title.isEmpty ? "Evidence \(index + 1)" : title,
+                    description: description,
+                    associatedCriteria: criteriaCodes,  // Keep array format for local use
+                    criteriaDescription: selectedCriteria.map { $0.description }.joined(separator: " | ")
+                )
+                
                 await uploadEvidence(fileURL: url, title: title, description: description)
-                completedUploads += 1
-                uploadProgress = Float(completedUploads) / Float(selectedDocumentURLs.count)
             } catch {
                 print("Failed to upload: \(url)")
             }
         }
+        
         isUploading = false
+        dismiss()
     }
     
     private var photoPickerButton: some View {

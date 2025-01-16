@@ -17,100 +17,110 @@ struct EvidencePreviewView: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // Evidence Preview Section
-            Group {
-                switch evidence.type {
-                case .photo:
-                    if isLoading {
-                        ProgressView()
-                    } else if let image = previewImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxHeight: 300)
-                            .cornerRadius(12)
-                    } else {
-                        Image(systemName: "photo")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                            .frame(height: 200)
-                    }
-                case .video:
-                    if let sharePointUrl = evidence.sharePointUrl {
-                        VideoPreviewView(evidence: evidence, evidenceManager: evidenceManager)
-                            .frame(height: 300)
-                            .cornerRadius(12)
-                    }
-                case .document:
-                    if let sharePointUrl = evidence.sharePointUrl {
-                        DocumentPreviewView(evidence: evidence, evidenceManager: evidenceManager)
-                    }
-                case .audio:
-                    if let url = evidence.resolvedFileURL {
-                        AudioPlayerView(url: url)
-                            .frame(height: 100)
-                            .padding()
-                    }
-                }
-            }
-            .padding(.horizontal)
-            
-            // Assessment Details - Using ViewModel
+        ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Assessment Status:")
-                        .font(.headline)
-                    Text(viewModel.assessmentStatus.displayName)
-                        .foregroundColor(viewModel.assessmentStatus.color)
-                        .bold()
-                }
-                
-                if let feedback = viewModel.assessorFeedback, !feedback.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Assessor Feedback:")
-                            .font(.headline)
-                        Text(feedback)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                // Evidence Preview Section
+                Group {
+                    switch evidence.type {
+                    case .photo:
+                        if isLoading {
+                            ProgressView()
+                        } else if let image = previewImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxHeight: 300)
+                                .cornerRadius(12)
+                        } else {
+                            Image(systemName: "photo")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray)
+                                .frame(height: 200)
+                        }
+                    case .video:
+                        if let sharePointUrl = evidence.sharePointUrl {
+                            VideoPreviewView(evidence: evidence, evidenceManager: evidenceManager)
+                                .frame(height: 300)
+                                .cornerRadius(12)
+                        }
+                    case .document:
+                        if let sharePointUrl = evidence.sharePointUrl {
+                            DocumentPreviewView(evidence: evidence, evidenceManager: evidenceManager)
+                        }
+                    case .audio:
+                        if let url = evidence.resolvedFileURL {
+                            AudioPlayerView(url: url)
+                                .frame(height: 100)
+                                .padding()
+                        }
                     }
                 }
+                .padding(.horizontal)
                 
-                if let assessor = viewModel.assessorName {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Assessed by:")
-                            .font(.headline)
-                        Text(assessor)
-                    }
-                }
-                
-                if let date = viewModel.assessmentDate {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Assessment Date:")
-                            .font(.headline)
-                        Text(date.formatted(date: .long, time: .shortened))
-                    }
-                }
-                
-                // Keep existing refresh functionality
-                Button(action: {
-                    Task {
-                        isRefreshing = true
-                        await viewModel.refreshMetadata()
-                        isRefreshing = false
-                    }
-                }) {
+                // Assessment Details - Using ViewModel
+                VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Refresh Status")
+                        Text("Assessment Status:")
+                            .font(.headline)
+                        Text(viewModel.assessmentStatus.displayName)
+                            .foregroundColor(viewModel.assessmentStatus.color)
+                            .bold()
                     }
-                    .foregroundColor(.blue)
+                    
+                    if let feedback = viewModel.assessorFeedback, !feedback.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Assessor Feedback:")
+                                .font(.headline)
+                            Text(feedback)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
+                        }
+                    }
+                    
+                    if let assessor = viewModel.assessorName {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Assessed by:")
+                                .font(.headline)
+                            Text(assessor)
+                        }
+                    }
+                    
+                    if let date = viewModel.assessmentDate {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Assessment Date:")
+                                .font(.headline)
+                            Text(date.formatted(date: .long, time: .shortened))
+                        }
+                    }
+                    
+                    // Update criteria display
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Associated Criteria:")
+                            .font(.headline)
+                        Text(evidence.displayCriteriaCode)
+                            .padding(.horizontal)
+                    }
+                    
+                    // Keep existing refresh functionality
+                    Button(action: {
+                        Task {
+                            isRefreshing = true
+                            await viewModel.refreshMetadata()
+                            isRefreshing = false
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Refresh Status")
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .disabled(!viewModel.canRefresh || isRefreshing)
+                    .padding(.top)
                 }
-                .disabled(!viewModel.canRefresh || isRefreshing)
-                .padding(.top)
+                .padding()
             }
-            .padding()
         }
         .onAppear {
             viewModel.setEvidenceManager(evidenceManager)

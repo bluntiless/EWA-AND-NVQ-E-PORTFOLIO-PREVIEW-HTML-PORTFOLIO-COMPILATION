@@ -1499,23 +1499,13 @@ class TeamsManager: ObservableObject {
         do {
             let response = try decoder.decode(GraphFileResponse.self, from: data)
             
-            // Handle both single item and collection responses
             if let fields = response.listItem?.fields {
-                // Direct item response
+                // Use the proper status mapping function
+                let status = fields.assessmentStatus.map(mapSharePointStatus) ?? .pending
+                
                 return EvidenceMetadata(
                     downloadUrl: response.downloadUrl,
-                    assessmentStatus: Evidence.AssessmentStatus(rawValue: fields.assessmentStatus ?? ""),
-                    assessorFeedback: fields.assessorFeedback,
-                    assessorName: fields.assessorName,
-                    assessmentDate: fields.assessmentDate
-                )
-            } else if let items = response.value,
-                      let firstItem = items.first,
-                      let fields = firstItem.listItem?.fields {
-                // Collection response
-                return EvidenceMetadata(
-                    downloadUrl: firstItem.downloadUrl,
-                    assessmentStatus: Evidence.AssessmentStatus(rawValue: fields.assessmentStatus ?? ""),
+                    assessmentStatus: status,
                     assessorFeedback: fields.assessorFeedback,
                     assessorName: fields.assessorName,
                     assessmentDate: fields.assessmentDate
@@ -1523,13 +1513,136 @@ class TeamsManager: ObservableObject {
             }
             
             print("❌ No valid metadata found in response")
-            print("Response data:", String(data: data, encoding: .utf8) ?? "")
             throw TeamsError.invalidMetadata
         } catch {
             print("❌ Failed to parse metadata:", error)
-            print("Response data:", String(data: data, encoding: .utf8) ?? "")
             throw TeamsError.invalidResponse
         }
+    }
+    
+    // Add status mapping function
+    private func mapSharePointStatus(_ status: String) -> Evidence.AssessmentStatus {
+        switch status {
+        case "Needs Revision", "Revision Required":  // Handle both possible status strings
+            return .needsRevision
+        case "Approved":
+            return .approved
+        case "Rejected":
+            return .rejected
+        default:
+            print("⚠️ Unknown status received: \(status), defaulting to pending")
+            return .pending
+        }
+    }
+    
+    // Add function to get current user info
+    func getCurrentUserInfo() async throws -> (id: String, name: String) {
+        let endpoint = "https://graph.microsoft.com/v1.0/me"
+        let (data, _) = try await makeAuthenticatedRequest(url: endpoint)
+        let userInfo = try JSONDecoder().decode(UserInfo.self, from: data)
+        return (userInfo.id, userInfo.displayName)
+    }
+    
+    // Modify the upload path to include user folder
+    func getEvidenceUploadPath(for evidence: Evidence) async throws -> String {
+        let userInfo = try await getCurrentUserInfo()
+        
+        // Use original SharePoint path structure
+        let evidencePath = SharePointConfig.evidencePath(for: evidence, userEmail: userInfo.id)
+        
+        // Determine file extension
+        let fileExtension: String
+        switch evidence.type {
+        case .photo:
+            fileExtension = "jpg"
+        case .video:
+            fileExtension = "mov"
+        case .document:
+            fileExtension = "pdf"
+        case .audio:
+            fileExtension = "m4a"
+        }
+        
+        return "\(evidencePath)/\(evidence.id).\(fileExtension)"
+    }
+    
+    private func ensureUserFolderExists(_ userFolder: String) async throws {
+        print("📁 Ensuring user folder exists: \(userFolder)")
+        
+        // Create the full path structure
+        let basePath = "Evidence/\(userFolder)"
+        
+        // Create folder structure
+        try await createFolderStructure(for: basePath)
+    }
+    
+    private func createFolderStructure(for path: String) async throws {
+        let folders = path.split(separator: "/")
+        var currentPath = ""
+        
+        for folder in folders {
+            currentPath += "/\(folder)"
+            try await createFolder(at: currentPath)
+        }
+    }
+    
+    private func createFolder(at path: String) async throws {
+        let endpoint = "https://graph.microsoft.com/v1.0/sites/\(SharePointConfig.siteHost)/drive/root:\(path)"
+        
+        print("📁 Creating folder at path: \(path)")
+        
+        let requestDict: [String: Any] = [
+            "name": path.split(separator: "/").last?.description ?? "",
+            "folder": [:] as [String: Any],
+            "@microsoft.graph.conflictBehavior": "replace"
+        ]
+        
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: requestDict)
+            var request = URLRequest(url: URL(string: endpoint)!)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            try await authenticate()
+            if let token = self.accessToken {
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
+            let (data, response) = try await URLSession.shared.upload(for: request, from: jsonData)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw TeamsError.invalidResponse
+            }
+            
+            switch httpResponse.statusCode {
+            case 200, 201:
+                print("✅ Created folder: \(path)")
+            case 409:
+                print("ℹ️ Folder exists: \(path)")
+            default:
+                if let errorText = String(data: data, encoding: .utf8) {
+                    print("❌ Folder creation failed:", errorText)
+                }
+                throw TeamsError.requestFailed(httpResponse.statusCode)
+            }
+        } catch {
+            print("❌ Error creating folder: \(error)")
+            throw error
+        }
+    }
+    
+    func uploadEvidenceToSharePoint(_ evidence: Evidence, fileURL: URL) async throws {
+        // ... existing upload code ...
+        
+        // Ensure criteria code is underscore-separated when creating metadata
+        let metadata = [
+            "Title": evidence.title,
+            "CriteriaCode": evidence.criteriaCode, // Already underscore-separated
+            "Description": evidence.description,
+            // ... other metadata fields ...
+        ]
+        
+        // ... rest of upload code ...
     }
 }
 
@@ -1594,6 +1707,12 @@ private struct GraphItemFields: Codable {
         case assessorName = "AssessorName"
         case assessmentDate = "Modified"
     }
+}
+
+// Add UserInfo model structure
+private struct UserInfo: Codable {
+    let id: String
+    let displayName: String
 }
 
 // CRITICAL SYSTEM PROTOCOLS

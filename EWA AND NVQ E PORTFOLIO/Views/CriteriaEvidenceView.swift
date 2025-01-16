@@ -66,21 +66,19 @@ struct CriteriaEvidenceView: View {
             }
             .padding()
         }
-        .sheet(isPresented: $showingUploadSheet, onDismiss: {
-            viewModel.loadEvidence()
-        }) {
-            if let evidenceType = selectedEvidenceType {
-                NavigationView {
-                    EvidenceUploadView(
-                        evidenceType: evidenceType,
-                        criteriaCode: selectedCriteria.map { $0.code }.joined(separator: ", "),
-                        unitCode: unit.code,
-                        criteriaDescription: selectedCriteria.map { $0.description }.joined(separator: "\n"),
-                        onEvidenceUploaded: { evidence in
-                            evidenceManager.addEvidence(evidence)
-                        }
-                    )
-                }
+        .sheet(isPresented: $showingUploadSheet) {
+            if let type = selectedEvidenceType {
+                EvidenceUploadView(
+                    evidenceType: type,
+                    criteriaCode: selectedCriteria[0].code,
+                    unitCode: unit.code,
+                    criteriaDescription: selectedCriteria[0].description,
+                    onEvidenceUploaded: { evidence in
+                        evidenceManager.addEvidence(evidence)
+                    },
+                    selectedCriteria: selectedCriteria
+                )
+                .environmentObject(evidenceManager)
             }
         }
     }
