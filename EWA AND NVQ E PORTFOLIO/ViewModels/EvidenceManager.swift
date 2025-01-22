@@ -209,10 +209,18 @@ class EvidenceManager: ObservableObject {
     }
     
     func getApprovedEvidenceCount(for unitCode: String) -> Int {
-        let unitEvidence = evidenceItems.filter { 
-            $0.unitCode == unitCode && !$0.isHidden 
-        }
-        return unitEvidence.filter { $0.assessmentStatus == .approved }.count
+        evidenceItems.filter { 
+            $0.unitCode == unitCode && 
+            !$0.isHidden && 
+            $0.assessmentStatus == .approved 
+        }.count
+    }
+    
+    func getTotalEvidenceCount(for unitCode: String) -> Int {
+        evidenceItems.filter { 
+            $0.unitCode == unitCode && 
+            !$0.isHidden 
+        }.count
     }
     
     func getRecentApprovedEvidence(for unitCode: String, limit: Int = 2) -> [Evidence]? {
@@ -480,23 +488,33 @@ class EvidenceManager: ObservableObject {
     }
 
     private func fetchUpdatedEvidenceFromSharePoint() async throws -> [Evidence] {
-        var updatedEvidence: [Evidence] = []
-        
-        for evidence in evidenceItems {
-            if let sharePointUrl = evidence.sharePointUrl {
-                do {
-                    try await TeamsManager.shared.authenticate()
-                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
-                    var updated = evidence
-                    updated.updateAssessmentInfo(from: metadata)
-                    updatedEvidence.append(updated)
-                } catch {
-                    print("Failed to fetch metadata for \(evidence.id): \(error)")
-                    updatedEvidence.append(evidence)
+        let updatedEvidence = try await withThrowingTaskGroup(of: Evidence.self) { group in
+            var results: [Evidence] = []
+            
+            for evidence in evidenceItems {
+                group.addTask {
+                    if let sharePointUrl = evidence.sharePointUrl {
+                        do {
+                            try await TeamsManager.shared.authenticate()
+                            let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                            var updated = evidence
+                            updated.updateAssessmentInfo(from: metadata)
+                            return updated
+                        } catch {
+                            print("Failed to fetch metadata for \(evidence.id): \(error)")
+                            return evidence
+                        }
+                    }
+                    return evidence
                 }
-            } else {
-                updatedEvidence.append(evidence)
             }
+            
+            // Collect results
+            for try await result in group {
+                results.append(result)
+            }
+            
+            return results
         }
         
         return updatedEvidence
@@ -507,6 +525,15 @@ class EvidenceManager: ObservableObject {
             evidence.criteriaArray.contains(criteriaCode) ||
             evidence.associatedCriteria.contains(criteriaCode)
         }
+    }
+    
+    func getProgressForUnit(_ unitCode: String) -> Double {
+        let evidenceForUnit = evidenceItems.filter { $0.unitCode == unitCode && !$0.isHidden }
+        let approvedEvidence = evidenceForUnit.filter { $0.assessmentStatus == .approved }
+        
+        // Avoid division by zero
+        guard !evidenceForUnit.isEmpty else { return 0.0 }
+        return Double(approvedEvidence.count) / Double(evidenceForUnit.count)
     }
 } 
 

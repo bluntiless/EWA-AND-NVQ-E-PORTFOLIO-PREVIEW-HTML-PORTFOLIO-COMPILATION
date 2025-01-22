@@ -1,4 +1,5 @@
 import SwiftUI
+import MSAL
 
 struct PortfolioView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
@@ -53,9 +54,8 @@ struct ProgressTabView: View {
     var body: some View {
         NavigationView {
             ProgressDetailView(
-                evidenceManager: evidenceManager,
                 qualificationStore: qualificationStore
             )
         }
     }
-} 
+}
