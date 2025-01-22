@@ -535,5 +535,22 @@ class EvidenceManager: ObservableObject {
         guard !evidenceForUnit.isEmpty else { return 0.0 }
         return Double(approvedEvidence.count) / Double(evidenceForUnit.count)
     }
+    
+    func getUnit(withCode code: String) -> Unit? {
+        // Search in both unit collections
+        return cityAndGuilds2357Units.first { $0.code == code } ?? 
+               EALUnits.ewaUnits.first { $0.code == code }
+    }
+    
+    // Add progress calculation without modifying existing code
+    func getUnitProgress(_ unit: Unit) -> Double {
+        let allCriteria = unit.learningOutcomes.flatMap { $0.performanceCriteria }
+        let completedCriteria = allCriteria.filter { criteria in
+            let evidence = getEvidenceForCriteria(criteria.code)
+            return evidence.contains { $0.assessmentStatus == .approved }
+        }
+        
+        return allCriteria.isEmpty ? 0 : Double(completedCriteria.count) / Double(allCriteria.count)
+    }
 } 
 

@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 struct LearningOutcome: Identifiable {
     let id = UUID()
@@ -43,6 +44,22 @@ class Unit: Identifiable, ObservableObject {
     func updateProgress() {
         let completedCriteria = learningOutcomes.flatMap { $0.performanceCriteria }.filter { $0.isCompleted }.count
         progress = learningOutcomes.isEmpty ? 0 : Double(completedCriteria) / Double(learningOutcomes.flatMap { $0.performanceCriteria }.count)
+    }
+    
+    @MainActor
+    func updateProgressWithEvidence(_ evidenceManager: EvidenceManager) async {
+        let allCriteria = learningOutcomes.flatMap { $0.performanceCriteria }
+        var completedCount = 0
+        
+        for criteria in allCriteria {
+            let evidence = await evidenceManager.getEvidenceForCriteria(criteria.code)
+            if evidence.contains(where: { $0.assessmentStatus == .approved }) {
+                completedCount += 1
+            }
+        }
+        
+        progress = allCriteria.isEmpty ? 0 : Double(completedCount) / Double(allCriteria.count)
+        objectWillChange.send()
     }
 }
 

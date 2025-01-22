@@ -6,12 +6,25 @@ struct QualificationsView: View {
     var body: some View {
         List(qualificationStore.qualifications) { qualification in
             NavigationLink(destination: QualificationDetailView(qualification: qualification)) {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(qualification.title)
                         .font(.headline)
                     Text(qualification.description)
                         .font(.subheadline)
-                    ProgressView(value: qualification.progress)
+                        .foregroundColor(.secondary)
+                    
+                    // Progress bar with count
+                    HStack {
+                        ProgressView(value: qualification.progress)
+                            .progressViewStyle(.linear)
+                            .tint(.green) // Add green color
+                            .frame(height: 8)
+                        
+                        // Add unit count
+                        Text("\(Int(qualification.progress * Double(qualification.units.count)))/\(qualification.units.count) Units")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import PDFKit
 import UniformTypeIdentifiers
+import UIKit // For UIImage
 
 struct EvidenceUploadView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
@@ -69,6 +70,11 @@ struct EvidenceUploadView: View {
     
     private var formContent: some View {
         Form {
+            Section {
+                if let unit = evidenceManager.getUnit(withCode: unitCode) {
+                    UnitHeaderView(unit: unit)
+                }
+            }
             detailsSection
             fileSection
             uploadButton
@@ -467,5 +473,56 @@ struct EvidenceUploadView: View {
         .frame(width: 100, height: 100)
         .background(Color.secondary.opacity(0.2))
         .cornerRadius(8)
+    }
+}
+
+struct UnitHeaderView: View {
+    let unit: Unit
+    @EnvironmentObject var evidenceManager: EvidenceManager
+    
+    var allCriteria: [PerformanceCriteria] {
+        unit.learningOutcomes.flatMap { $0.performanceCriteria }
+    }
+    
+    var completedCriteria: Int {
+        allCriteria.filter { criteria in
+            let evidence = evidenceManager.getEvidenceForCriteria(criteria.code)
+            return evidence.contains { $0.assessmentStatus == .approved }
+        }.count
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(unit.title)
+                .font(.title2)
+                .fontWeight(.medium)
+            Text("GLH: \(unit.glh)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            // Progress bar with count
+            ZStack(alignment: .leading) {
+                // Background
+                Capsule()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: 8)
+                
+                // Progress
+                if completedCriteria > 0 {
+                    Capsule()
+                        .fill(Color.green)
+                        .frame(width: UIScreen.main.bounds.width * 0.7 * (CGFloat(completedCriteria) / CGFloat(allCriteria.count)))
+                        .frame(height: 8)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: completedCriteria)
+                }
+            }
+            
+            // Count
+            Text("\(completedCriteria)/\(allCriteria.count)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .animation(.easeOut, value: completedCriteria)
+        }
+        .padding()
     }
 }

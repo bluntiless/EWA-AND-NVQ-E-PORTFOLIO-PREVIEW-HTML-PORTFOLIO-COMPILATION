@@ -2,6 +2,7 @@ import SwiftUI
 
 struct QualificationDetailView: View {
     @ObservedObject var qualification: Qualification
+    @EnvironmentObject var evidenceManager: EvidenceManager
     
     var body: some View {
         List {
@@ -12,6 +13,8 @@ struct QualificationDetailView: View {
                             .font(.headline)
                         ProgressView(value: unit.progress)
                             .progressViewStyle(.linear)
+                            .tint(progressColor(for: unit))
+                            .frame(height: 8)
                     }
                 }
             }
@@ -22,5 +25,17 @@ struct QualificationDetailView: View {
         }) { _ in
             qualification.updateProgress()
         }
+        .task {
+            for unit in qualification.units {
+                await unit.updateProgressWithEvidence(evidenceManager)
+            }
+        }
+    }
+    
+    private func progressColor(for unit: Unit) -> Color {
+        if unit.code == "NETP3-03" {
+            return .yellow
+        }
+        return .green
     }
 } 

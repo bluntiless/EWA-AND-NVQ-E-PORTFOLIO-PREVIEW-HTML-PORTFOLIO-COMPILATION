@@ -17,21 +17,22 @@ class Qualification: Identifiable, ObservableObject {
         self.title = title
         self.description = description
         self.units = units
-        updateProgress()
         
         // Observe unit changes
         for unit in units {
-            unit.objectWillChange
+            unit.$progress  // Use published property
                 .sink { [weak self] _ in
                     self?.updateProgress()
                 }
                 .store(in: &cancellables)
         }
+        
+        updateProgress()
     }
     
     func updateProgress() {
-        let totalProgress = units.reduce(into: 0.0) { result, unit in
-            result += unit.progress
+        let totalProgress = units.reduce(0.0) { result, unit in
+            result + unit.progress
         }
         progress = units.isEmpty ? 0 : totalProgress / Double(units.count)
     }
