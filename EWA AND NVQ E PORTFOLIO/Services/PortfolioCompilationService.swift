@@ -176,7 +176,7 @@ class PortfolioCompilationService {
             let isComplete = approvedEvidence.count >= (requiresTwoOccasions ? 2 : 1)
             row += """
                 <td class="complete-box \(isComplete ? "approved" : "")">
-                    \(isComplete ? "✓" : "")
+                    \(isComplete ? "Complete" : "")
                 </td>
             """
             
@@ -237,14 +237,15 @@ class PortfolioCompilationService {
                     .complete-box {
                         width: 80px;
                         text-align: center;
+                        font-size: 11px;
+                    }
+                    .complete-box.approved {
+                        background-color: #d4edda;
+                        color: #155724;
                     }
                     .evidence-box.pending {
                         background-color: #fff3cd;
                         color: #856404;
-                    }
-                    .evidence-box.approved {
-                        background-color: #d4edda;
-                        color: #155724;
                     }
                     .evidence-box.revision {
                         background-color: #f8d7da;

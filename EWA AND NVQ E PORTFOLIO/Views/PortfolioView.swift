@@ -58,6 +58,7 @@ struct PortfolioView: View {
                                 showingPreview = true
                             } label: {
                                 Image(systemName: "eye")
+                                    .foregroundColor(.blue)
                             }
                         }
                         
@@ -76,31 +77,34 @@ struct PortfolioView: View {
         .fileExporter(
             isPresented: $showingCompilationSheet,
             document: PortfolioDocument(initialDirectory: "Portfolio"),
-            contentType: .folder,
-            defaultFilename: "Portfolio-\(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-"))"
-        ) { result in
-            switch result {
-            case .success(let url):
-                isCompiling = true
-                Task {
-                    do {
-                        try await PortfolioCompilationService.shared.compilePortfolio(
-                            evidence: evidenceManager.evidenceItems,
-                            to: url
-                        )
-                        compiledPortfolioURL = url.appendingPathComponent("index.html")
-                    } catch {
-                        compilationError = error
-                        showingError = true
+            contentType: .portfolio,
+            defaultFilename: "Portfolio-\(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-"))",
+            onCompletion: { result in
+                switch result {
+                case .success(let url):
+                    isCompiling = true
+                    Task {
+                        do {
+                            try await PortfolioCompilationService.shared.compilePortfolio(
+                                evidence: evidenceManager.evidenceItems,
+                                to: url
+                            )
+                            compiledPortfolioURL = url
+                        } catch {
+                            compilationError = error
+                            showingError = true
+                        }
+                        isCompiling = false
                     }
-                    isCompiling = false
+                case .failure(let error):
+                    compilationError = error
+                    showingError = true
                 }
-            case .failure(let error):
-                compilationError = error
-                showingError = true
             }
-        }
-        .navigationTitle("Save Portfolio")
+        )
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .navigationTitle("Portfolio")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingPreview) {
             if let url = compiledPortfolioURL {
@@ -161,30 +165,5 @@ struct ProgressTabView: View {
                 qualificationStore: qualificationStore
             )
         }
-    }
-}
-
-// Move this before PortfolioDocument struct
-extension UTType {
-    static var folder: UTType {
-        UTType(exportedAs: "com.waynewright.ewa-nvq-portfolio.folder")
-    }
-}
-
-struct PortfolioDocument: FileDocument {
-    let initialDirectory: String
-    
-    static var readableContentTypes: [UTType] { [.folder] }
-    
-    init(initialDirectory: String) {
-        self.initialDirectory = initialDirectory
-    }
-    
-    init(configuration: ReadConfiguration) throws {
-        self.initialDirectory = ""
-    }
-    
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        return FileWrapper(directoryWithFileWrappers: [:])
     }
 }
