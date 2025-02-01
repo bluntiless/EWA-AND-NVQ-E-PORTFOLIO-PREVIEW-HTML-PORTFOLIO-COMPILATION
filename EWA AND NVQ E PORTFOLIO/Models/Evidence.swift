@@ -386,6 +386,53 @@ class Evidence: ObservableObject, Identifiable, Codable {
         // Split descriptions that were joined with pipes
         criteriaDescription.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }
     }
+    
+    // Cache to store approved statuses with timestamps
+    private static let statusCache = NSCache<NSString, CachedStatus>()
+    
+    class CachedStatus {
+        let status: AssessmentStatus
+        let timestamp: Date
+        let itemId: String
+        
+        init(status: AssessmentStatus, itemId: String) {
+            self.status = status
+            self.timestamp = Date()
+            self.itemId = itemId
+        }
+    }
+    
+    func cacheApprovedStatus() {
+        if self.assessmentStatus == .approved {
+            // Cache using the evidence ID directly
+            let itemId = self.id.uuidString
+            Evidence.statusCache.setObject(
+                CachedStatus(status: .approved, itemId: itemId),
+                forKey: itemId as NSString
+            )
+        }
+    }
+    
+    var effectiveStatus: AssessmentStatus {
+        // Always return actual status if available
+        if assessmentStatus == .approved {
+            // Cache approved status when found
+            cacheApprovedStatus()
+            return .approved
+        }
+        
+        // If not approved, check cache
+        let itemId = self.id.uuidString
+        if let cachedStatus = Evidence.statusCache.object(forKey: itemId as NSString) {
+            // Verify item ID still matches
+            if cachedStatus.itemId == itemId {
+                return cachedStatus.status
+            }
+        }
+        
+        // Return actual status or default to pending
+        return assessmentStatus ?? .pending
+    }
 }
 
 extension Evidence.AssessmentStatus {

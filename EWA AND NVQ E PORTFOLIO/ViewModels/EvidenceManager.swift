@@ -552,5 +552,18 @@ class EvidenceManager: ObservableObject {
         
         return allCriteria.isEmpty ? 0 : Double(completedCriteria.count) / Double(allCriteria.count)
     }
+    
+    // Add debug logging to track status changes
+    func updateEvidenceStatus(_ evidence: Evidence, status: Evidence.AssessmentStatus) {
+        print("\n=== Updating Evidence Status ===")
+        print("Evidence: \(evidence.title)")
+        print("Old Status: \(evidence.assessmentStatus)")
+        print("New Status: \(status)")
+        
+        if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+            evidenceItems[index].assessmentStatus = status
+            print("Status Updated Successfully")
+        }
+    }
 } 
 

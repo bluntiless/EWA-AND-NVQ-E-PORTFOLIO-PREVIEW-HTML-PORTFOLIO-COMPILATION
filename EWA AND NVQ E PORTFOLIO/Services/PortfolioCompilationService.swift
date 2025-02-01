@@ -50,72 +50,135 @@ class PortfolioCompilationService {
     }
     
     // Move these to class level
-    private func getStatusDisplay(for evidence: Evidence?) -> String {
-        guard let evidence = evidence else {
-            return "<td class=\"evidence-box\"></td>"
+    private func getStatusDisplay(status: Evidence.AssessmentStatus) -> (class: String, text: String) {
+        switch status {
+        case .approved:
+            return ("approved", "Approved")
+        case .needsRevision:
+            return ("revision", "Needs Revision")
+        case .rejected:
+            return ("rejected", "Rejected")
+        case .pending:
+            return ("pending", "No Evidence")
         }
-        
-        #if DEBUG
-        print("Evidence: \(evidence.title)")
-        print("Status: \(evidence.assessmentStatus)")
-        #endif
-        
-        let statusClass = getStatusClass(for: evidence.assessmentStatus)
-        let statusText = getStatusText(for: evidence.assessmentStatus)
-        
-        return """
-            <td class="evidence-box \(statusClass)">
-                \(statusText)
-            </td>
-        """
     }
     
     private func getStatusText(for status: Evidence.AssessmentStatus) -> String {
         switch status {
         case .approved: return "✓ Approved"
-        case .needsRevision: return "⚠️ Needs Revision"
-        case .rejected: return "❌ Rejected"
+        case .needsRevision: return "⚠️ Revision"
+        case .rejected: return "✗ Rejected"
         case .pending: return "⏳ Pending"
         }
     }
     
+    private func getStatusClass(for status: Evidence.AssessmentStatus) -> String {
+        switch status {
+        case .approved: return "approved"
+        case .needsRevision: return "revision"
+        case .rejected: return "rejected"
+        case .pending: return "pending"
+        }
+    }
+    
     private func generatePreviewHTML(for evidence: [Evidence], in unitCode: String) -> String {
-        let evidenceByCriteria = Dictionary(grouping: evidence) { $0.criteriaCode }
-        let requiresTwoOccasions = ["NETP3-01", "NETP3-03", "NETP3-06"].contains(unitCode)
+        // Create a cache of approved evidence to maintain consistency
+        let approvedEvidenceCache = NSCache<NSString, NSNumber>()
         
-        #if DEBUG
-        print("\n=== Evidence Status for Unit \(unitCode) ===")
-        print("Two occasions required: \(requiresTwoOccasions)")
-        #endif
-        
-        // Track approved criteria and status
-        var approvedCriteria = Set<String>()
-        evidenceByCriteria.forEach { (code, items) in
-            if items.contains(where: { $0.assessmentStatus == .approved }) {
-                approvedCriteria.insert(code)
-                #if DEBUG
-                print("✅ Criteria \(code): \(items.count) items, Status: Approved")
-                #endif
+        // Group evidence by criteria code and maintain approved status
+        let evidenceByCriteria = Dictionary(grouping: evidence) { evidence in
+            // Cache approved status when found
+            if evidence.effectiveStatus == .approved {
+                approvedEvidenceCache.setObject(true, forKey: evidence.id.uuidString as NSString)
             }
+            return evidence.criteriaCode
         }
         
-        // Generate table rows function (moved to local scope)
+        #if DEBUG
+        print("\n=== Evidence Mapping Debug ===")
+        print("Unit: \(unitCode)")
+        print("Total Evidence Items: \(evidence.count)")
+        #endif
+        
+        let requiresTwoOccasions = ["NETP3-01", "NETP3-03", "NETP3-04", "NETP3-06", "NETP3-07"].contains(unitCode)
+        
+        // Get approved criteria directly from evidence
+        let approvedCriteria = evidenceByCriteria.filter { _, items in
+            let approvedCount = items.filter { $0.effectiveStatus == .approved }.count
+            return approvedCount >= (requiresTwoOccasions ? 2 : 1)
+        }
+        
+        #if DEBUG
+        print("\n=== Evidence Status Debug ===")
+        print("Unit: \(unitCode)")
+        print("Total Evidence: \(evidence.count)")
+        print("Approved Criteria: \(approvedCriteria.count) of \(evidenceByCriteria.count)")
+        #endif
+        
         func generateTableRow(code: String, description: String, criteriaEvidence: [Evidence]) -> String {
-            let approvedEvidence = criteriaEvidence.filter { $0.assessmentStatus == .approved }
+            // Get all evidence that matches this criteria code
+            let matchingEvidence = evidence.filter { evidence in
+                let shortCode = code.split(separator: "-").last?.description ?? code
+                let unitPrefix = code.split(separator: "-").first?.description ?? ""
+                
+                return evidence.criteriaArray.contains(shortCode) || 
+                       evidence.criteriaCode == shortCode ||
+                       evidence.criteriaArray.contains("\(unitPrefix)-\(shortCode)") ||
+                       evidence.criteriaArray.contains(code)
+            }
+            
+            let sortedEvidence = matchingEvidence.sorted { $0.uploadDate ?? Date() < $1.uploadDate ?? Date() }
+            
+            // Only count evidence that is actually approved
+            let approvedEvidence = sortedEvidence.filter { evidence in
+                evidence.assessmentStatus == .approved
+            }
             
             var row = """
                 <tr>
                     <td class="criteria-number">\(code)</td>
                     <td class="criteria-desc">\(description)</td>
-                    \(getStatusDisplay(for: criteriaEvidence.first))
             """
             
-            if requiresTwoOccasions {
-                row += getStatusDisplay(for: criteriaEvidence.dropFirst().first)
+            // First occasion status
+            if let firstEvidence = approvedEvidence.first {
+                row += """
+                    <td class="evidence-box approved">
+                        Approved
+                    </td>
+                """
+            } else {
+                row += """
+                    <td class="evidence-box pending">
+                        No Evidence
+                    </td>
+                """
             }
             
+            // Second occasion if required
+            if requiresTwoOccasions {
+                if let secondEvidence = approvedEvidence.dropFirst().first {
+                    row += """
+                        <td class="evidence-box approved">
+                            Approved
+                        </td>
+                    """
+                } else {
+                    row += """
+                        <td class="evidence-box pending">
+                            No Evidence
+                        </td>
+                    """
+                }
+            }
+            
+            // Complete status - only mark complete if we have enough approved evidence
             let isComplete = approvedEvidence.count >= (requiresTwoOccasions ? 2 : 1)
-            row += "<td class=\"complete-box \(isComplete ? "approved" : "")\">\(isComplete ? "✓" : "")</td>"
+            row += """
+                <td class="complete-box \(isComplete ? "approved" : "")">
+                    \(isComplete ? "✓" : "")
+                </td>
+            """
             
             return row + "</tr>"
         }
@@ -133,30 +196,6 @@ class PortfolioCompilationService {
             tableHeaders += "<th class=\"evidence-box\">Second Occasion</th>"
         }
         tableHeaders += "<th class=\"complete-box\">Complete</th></tr>"
-        
-        // Add CSS styles for better visibility
-        let statusStyles = """
-            .evidence-box.pending { 
-                background-color: #fff3cd; 
-                color: #856404; 
-                font-weight: bold;
-            }
-            .evidence-box.approved { 
-                background-color: #d4edda; 
-                color: #155724;
-                font-weight: bold;
-            }
-            .evidence-box.revision { 
-                background-color: #f8d7da; 
-                color: #721c24;
-                font-weight: bold;
-            }
-            .evidence-box.rejected { 
-                background-color: #dc3545; 
-                color: #ffffff;
-                font-weight: bold;
-            }
-        """
         
         // Generate the HTML with consistent styling
         var html = """
@@ -242,16 +281,6 @@ class PortfolioCompilationService {
         }
         
         return html + "</body></html>"
-    }
-    
-    // Helper functions to maintain consistent status display
-    private func getStatusClass(for status: Evidence.AssessmentStatus) -> String {
-        switch status {
-        case .approved: return "approved"
-        case .needsRevision: return "revision"
-        case .rejected: return "rejected"
-        case .pending: return "pending"
-        }
     }
     
     // Helper function to get unit-specific learning outcomes
@@ -540,125 +569,54 @@ class PortfolioCompilationService {
     }
     
     func compilePortfolio(evidence: [Evidence], to destinationURL: URL) async throws {
-        // Validate destination URL
-        guard destinationURL.isFileURL else {
-            throw PortfolioCompilationError.fileOperationError(.invalidDestination)
-        }
+        let fileManager = FileManager.default
         
-        // Start accessing the security-scoped resource
-        guard destinationURL.startAccessingSecurityScopedResource() else {
-            throw PortfolioCompilationError.fileOperationError(.accessDenied)
-        }
+        // Create a unique directory name with timestamp
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HH-mm-ss"
+        let timestamp = formatter.string(from: Date())
+        let portfolioName = "Portfolio-\(timestamp)"
         
-        defer {
-            destinationURL.stopAccessingSecurityScopedResource()
-        }
+        // Create temporary directory
+        let tempBaseURL = fileManager.temporaryDirectory
+        let tempURL = tempBaseURL.appendingPathComponent(portfolioName)
         
         do {
-            // Create portfolio directory with explicit permissions
-            try FileManager.default.createDirectory(
-                at: destinationURL,
+            // Create temp directory
+            try fileManager.createDirectory(
+                at: tempURL,
                 withIntermediateDirectories: true,
-                attributes: [
-                    FileAttributeKey.posixPermissions: 0o755
-                ]
+                attributes: nil
             )
             
-            // Create index file
-            let indexURL = destinationURL.appendingPathComponent("index.txt")
-            var indexContent = "Portfolio Evidence Index\n\n"
-            
-            // Group evidence by unit code
+            // Generate portfolio content
             let groupedEvidence = Dictionary(grouping: evidence) { $0.unitCode }
             
-            for (unitCode, unitEvidence) in groupedEvidence.sorted(by: { $0.key < $1.key }) {
-                let unitURL = destinationURL.appendingPathComponent(unitCode)
-                try FileManager.default.createDirectory(at: unitURL, withIntermediateDirectories: true)
+            for (unitCode, unitEvidence) in groupedEvidence {
+                let unitURL = tempURL.appendingPathComponent(unitCode)
+                try fileManager.createDirectory(at: unitURL, withIntermediateDirectories: true)
                 
-                // Generate and save preview HTML
+                // Generate preview HTML
                 let previewHTML = generatePreviewHTML(for: unitEvidence, in: unitCode)
-                let previewURL = unitURL.appendingPathComponent("preview.html")
-                try previewHTML.write(to: previewURL, atomically: true, encoding: .utf8)
-                
-                indexContent += "\nUnit: \(unitCode)\n"
-                
-                // Copy evidence files and update index
-                for item in unitEvidence {
-                    indexContent += "\n- \(item.title) (\(item.type.rawValue))"
-                    
-                    // Add criteria with descriptions
-                    indexContent += "\n  Criteria: \(item.criteriaCode)"
-                    // Add criteria descriptions
-                    for (index, description) in item.criteriaDescriptionArray.enumerated() {
-                        let criteriaNumber = item.criteriaArray[safe: index] ?? ""
-                        indexContent += "\n    \(criteriaNumber): \(description)"
-                    }
-                    
-                    indexContent += "\n  Status: \(item.assessmentStatus.rawValue)"
-                    
-                    if let sourceURL = item.displayURL {
-                        let filename = sourceURL.lastPathComponent
-                        let destinationFileURL = unitURL.appendingPathComponent(filename)
-                        
-                        if sourceURL.isFileURL {
-                            // For local files
-                            do {
-                                if FileManager.default.fileExists(atPath: sourceURL.path) {
-                                    try FileManager.default.copyItem(at: sourceURL, to: destinationFileURL)
-                                    indexContent += "\n  File: \(filename) (Copied)"
-                                } else {
-                                    throw FileOperationError.fileNotFound
-                                }
-                            } catch {
-                                print("Error copying file \(filename): \(error)")
-                                indexContent += "\n  File: Error - \(error.localizedDescription)"
-                            }
-                        } else {
-                            // Use existing SharePoint handling from your implementation
-                            // No changes to your current SharePoint implementation
-                        }
-                    } else {
-                        indexContent += "\n  File: No file available"
-                    }
-                    indexContent += "\n"
-                }
-            }
-            
-            // Create main index.html that links to unit previews
-            var mainHTML = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Portfolio Evidence</title>
-                <style>
-                    body { font-family: -apple-system, sans-serif; margin: 20px; }
-                    .unit-link { margin: 10px 0; }
-                </style>
-            </head>
-            <body>
-            <h1>Portfolio Evidence Index</h1>
-            """
-            
-            for unitCode in groupedEvidence.keys.sorted() {
-                mainHTML += "<div class='unit-link'>"
-                mainHTML += "<a href='\(unitCode)/preview.html'>Unit \(unitCode)</a>"
-                mainHTML += "</div>"
-            }
-            
-            mainHTML += "</body></html>"
-            try mainHTML.write(to: destinationURL.appendingPathComponent("index.html"), atomically: true, encoding: .utf8)
-            
-            do {
-                try indexContent.write(to: indexURL, atomically: true, encoding: .utf8)
-                try FileManager.default.setAttributes(
-                    [FileAttributeKey.posixPermissions: 0o644],
-                    ofItemAtPath: indexURL.path
+                try previewHTML.write(
+                    to: unitURL.appendingPathComponent("preview.html"),
+                    atomically: true,
+                    encoding: .utf8
                 )
-            } catch {
-                throw PortfolioCompilationError.indexWriteFailed
             }
+            
+            // If destination exists, remove it first
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+            
+            // Move compiled portfolio to destination
+            try fileManager.moveItem(at: tempURL, to: destinationURL)
+            
         } catch {
-            throw PortfolioCompilationError.directoryCreationFailed
+            // Clean up temp directory if it exists
+            try? fileManager.removeItem(at: tempURL)
+            throw error
         }
     }
     

@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct PortfolioView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
     @EnvironmentObject var qualificationStore: QualificationStore
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedTab = 0
     @State private var showingCompilationSheet = false
     @State private var compilationError: Error?
@@ -11,6 +12,17 @@ struct PortfolioView: View {
     @State private var isCompiling = false
     @State private var compiledPortfolioURL: URL?
     @State private var showingPreview = false
+    
+    private var backButton: some View {
+        Button(action: {
+            dismiss()
+        }) {
+            HStack {
+                Image(systemName: "chevron.left")
+                Text("Back")
+            }
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -36,20 +48,26 @@ struct PortfolioView: View {
                 await evidenceManager.refreshEvidenceStatus()
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    backButton
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
                         if let url = compiledPortfolioURL {
                             Button {
                                 showingPreview = true
                             } label: {
-                                Label("Preview Portfolio", systemImage: "eye")
+                                Image(systemName: "eye")
                             }
                         }
                         
                         Button {
                             showingCompilationSheet = true
                         } label: {
-                            Label("Compile Portfolio", systemImage: "folder.badge.plus")
+                            HStack {
+                                Image(systemName: "folder.badge.plus")
+                                Text("Compile Portfolio")
+                            }
                         }
                     }
                 }
@@ -59,7 +77,7 @@ struct PortfolioView: View {
             isPresented: $showingCompilationSheet,
             document: PortfolioDocument(initialDirectory: "Portfolio"),
             contentType: .folder,
-            defaultFilename: "Portfolio"
+            defaultFilename: "Portfolio-\(DateFormatter.localizedString(from: Date(), dateStyle: .short, timeStyle: .short).replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-"))"
         ) { result in
             switch result {
             case .success(let url):
@@ -82,6 +100,8 @@ struct PortfolioView: View {
                 showingError = true
             }
         }
+        .navigationTitle("Save Portfolio")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingPreview) {
             if let url = compiledPortfolioURL {
                 NavigationView {
