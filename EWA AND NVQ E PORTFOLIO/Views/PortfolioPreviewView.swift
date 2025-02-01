@@ -3,25 +3,50 @@ import WebKit
 
 struct PortfolioPreviewView: View {
     let url: URL
-    @State private var selectedUnit = "NETP3-01"
+    @EnvironmentObject var qualificationStore: QualificationStore
+    @State private var selectedUnit = "311"  // Default to first unit
     @State private var loadError: Error?
     @State private var isLoading = true
     
-    // All available units
-    let units = ["NETP3-01", "NETP3-03", "NETP3-04", "NETP3-05", "NETP3-06", "NETP3-07"]
+    // Get all units - both performance and knowledge
+    var units: [String] {
+        let ewaUnits = [
+            // EWA Units (NETP3 series)
+            "NETP3-01", "NETP3-03", "NETP3-04", 
+            "NETP3-05", "NETP3-06", "NETP3-07"
+        ]
+        
+        let nvqUnits = [
+            // NVQ 1605 Units
+            "ELTP3-01", "ELTP3-02", "ELTP3-03", 
+            "ELTP3-04", "ELTP3-05", "ELTP3-06", "ELTP3-07"
+        ]
+        
+        return ewaUnits + nvqUnits
+    }
     
     var body: some View {
         VStack {
-            // Unit selector
+            // Unit selector with improved layout
             ScrollView(.horizontal, showsIndicators: false) {
-                Picker("Unit", selection: $selectedUnit) {
-                    ForEach(units, id: \.self) { unit in
-                        Text(unit).tag(unit)
+                LazyHGrid(rows: [GridItem(.fixed(44))], spacing: 4) {
+                    ForEach(units, id: \.self) { unitCode in
+                        Button(action: {
+                            selectedUnit = unitCode
+                        }) {
+                            Text(getUnitDescription(unitCode))
+                                .font(.caption)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 4)
+                                .background(selectedUnit == unitCode ? Color.blue : Color.gray.opacity(0.2))
+                                .foregroundColor(selectedUnit == unitCode ? .white : .primary)
+                                .cornerRadius(8)
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
-                .padding()
+                .padding(.horizontal, 4)
             }
+            .frame(height: 44)
             
             // Preview content
             ZStack {
@@ -46,6 +71,19 @@ struct PortfolioPreviewView: View {
         } message: {
             Text(loadError?.localizedDescription ?? "Failed to load preview")
         }
+    }
+    
+    private func getUnitDescription(_ unitCode: String) -> String {
+        if unitCode.starts(with: "NETP") {
+            return unitCode  // Shows "NETP3-01" etc.
+        } else {
+            return unitCode.replacingOccurrences(of: "ELTP", with: "NVQ")  // Shows "NVQ3-01" etc.
+        }
+    }
+    
+    private func convertToNETPFormat(_ unitCode: String) -> String {
+        // No conversion needed - use unit codes directly
+        return unitCode
     }
 }
 
