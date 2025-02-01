@@ -1,32 +1,116 @@
 import SwiftUI
-import MSAL
+import UniformTypeIdentifiers
 
 struct PortfolioView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
     @EnvironmentObject var qualificationStore: QualificationStore
     @State private var selectedTab = 0
+    @State private var showingCompilationSheet = false
+    @State private var compilationError: Error?
+    @State private var showingError = false
+    @State private var isCompiling = false
+    @State private var compiledPortfolioURL: URL?
+    @State private var showingPreview = false
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            EvidenceTabView()
-                .tabItem {
-                    Label("Evidence", systemImage: "doc.text")
+        NavigationView {
+            TabView(selection: $selectedTab) {
+                EvidenceTabView()
+                    .tabItem {
+                        Label("Evidence", systemImage: "doc.text")
+                    }
+                    .tag(0)
+                    .environmentObject(evidenceManager)
+                    .environmentObject(qualificationStore)
+                
+                ProgressTabView()
+                    .tabItem {
+                        Label("Progress", systemImage: "chart.bar.fill")
+                    }
+                    .tag(1)
+                    .environmentObject(evidenceManager)
+                    .environmentObject(qualificationStore)
+            }
+            .task {
+                await evidenceManager.loadInitialData()
+                await evidenceManager.refreshEvidenceStatus()
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack {
+                        if let url = compiledPortfolioURL {
+                            Button {
+                                showingPreview = true
+                            } label: {
+                                Label("Preview Portfolio", systemImage: "eye")
+                            }
+                        }
+                        
+                        Button {
+                            showingCompilationSheet = true
+                        } label: {
+                            Label("Compile Portfolio", systemImage: "folder.badge.plus")
+                        }
+                    }
                 }
-                .tag(0)
-                .environmentObject(evidenceManager)
-                .environmentObject(qualificationStore)
-            
-            ProgressTabView()
-                .tabItem {
-                    Label("Progress", systemImage: "chart.bar.fill")
-                }
-                .tag(1)
-                .environmentObject(evidenceManager)
-                .environmentObject(qualificationStore)
+            }
         }
-        .task {
-            await evidenceManager.loadInitialData()
-            await evidenceManager.refreshEvidenceStatus()
+        .fileExporter(
+            isPresented: $showingCompilationSheet,
+            document: PortfolioDocument(initialDirectory: "Portfolio"),
+            contentType: .folder,
+            defaultFilename: "Portfolio"
+        ) { result in
+            switch result {
+            case .success(let url):
+                isCompiling = true
+                Task {
+                    do {
+                        try await PortfolioCompilationService.shared.compilePortfolio(
+                            evidence: evidenceManager.evidenceItems,
+                            to: url
+                        )
+                        compiledPortfolioURL = url.appendingPathComponent("index.html")
+                    } catch {
+                        compilationError = error
+                        showingError = true
+                    }
+                    isCompiling = false
+                }
+            case .failure(let error):
+                compilationError = error
+                showingError = true
+            }
+        }
+        .sheet(isPresented: $showingPreview) {
+            if let url = compiledPortfolioURL {
+                NavigationView {
+                    PortfolioPreviewView(url: url)
+                        .navigationTitle("Portfolio Preview")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showingPreview = false
+                                }
+                            }
+                        }
+                }
+                .interactiveDismissDisabled(false)
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .alert("Compilation Error", isPresented: $showingError, presenting: compilationError) { _ in
+            Button("OK") {}
+        } message: { error in
+            Text(error.localizedDescription)
+        }
+        .overlay {
+            if isCompiling {
+                ProgressView("Compiling Portfolio...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.ultraThinMaterial)
+            }
         }
     }
 }
@@ -57,5 +141,30 @@ struct ProgressTabView: View {
                 qualificationStore: qualificationStore
             )
         }
+    }
+}
+
+// Move this before PortfolioDocument struct
+extension UTType {
+    static var folder: UTType {
+        UTType(exportedAs: "com.waynewright.ewa-nvq-portfolio.folder")
+    }
+}
+
+struct PortfolioDocument: FileDocument {
+    let initialDirectory: String
+    
+    static var readableContentTypes: [UTType] { [.folder] }
+    
+    init(initialDirectory: String) {
+        self.initialDirectory = initialDirectory
+    }
+    
+    init(configuration: ReadConfiguration) throws {
+        self.initialDirectory = ""
+    }
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        return FileWrapper(directoryWithFileWrappers: [:])
     }
 }

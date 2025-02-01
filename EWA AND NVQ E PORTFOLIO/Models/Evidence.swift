@@ -100,14 +100,7 @@ class Evidence: ObservableObject, Identifiable, Codable {
     }
     
     var displayURL: URL? {
-        if let sharePointURL = sharePointUrl, 
-           !sharePointURL.isEmpty {
-            let cleanUrl = sharePointURL.trimmingCharacters(in: .whitespacesAndNewlines)
-                .replacingOccurrences(of: " ", with: "%20")
-            if let url = URL(string: cleanUrl) {
-                return url
-            }
-        }
+        // Use resolvedFileURL which already handles both local and SharePoint URLs
         return resolvedFileURL
     }
     

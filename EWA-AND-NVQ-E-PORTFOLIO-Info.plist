@@ -28,7 +28,49 @@
 		<string>msauthv2</string>
 		<string>msauthv3</string>
 	</array>
+	<key>NSFileProviderDomainUsageDescription</key>
+	<string>Access is needed to compile and preview your portfolio evidence</string>
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Access is needed to save your portfolio</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Portfolio Folder</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.waynewright.ewa-nvq-portfolio.folder</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.waynewright.ewa-nvq-portfolio.folder</string>
+			<key>UTTypeDescription</key>
+			<string>Portfolio Folder</string>
+			<key>UTTypeIconFiles</key>
+			<array/>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.folder</string>
+				<string>public.directory</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>portfolio</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
