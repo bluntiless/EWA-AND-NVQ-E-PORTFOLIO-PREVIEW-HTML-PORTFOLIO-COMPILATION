@@ -1,4 +1,6 @@
 import Foundation
+import Combine
+// Use the Unit class from Unit.swift
 
 let cityAndGuilds2357Units: [Unit] = [
     // Unit 311
@@ -8,7 +10,7 @@ let cityAndGuilds2357Units: [Unit] = [
         reference: "R6022596",
         title: "Applying Health and Safety legislation and working practices",
         description: "Installing and maintaining electrotechnical systems and equipment",
-        unitType: .performance,
+        unitType: .CityAndGuilds,
         creditValue: 10,
         glh: 3,
         startDate: DateHelper.getStandardDateRange().start,

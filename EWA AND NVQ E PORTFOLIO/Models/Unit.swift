@@ -20,9 +20,22 @@ class Unit: Identifiable, ObservableObject {
     let glh: Int
     let startDate: Date
     let endDate: Date
-    @Published var learningOutcomes: [LearningOutcome]
+    let learningOutcomes: [LearningOutcome]
     let allowedAssessmentMethods: [AssessmentMethod]
     @Published var progress: Double = 0.0
+    
+    var displayCode: String {
+        switch unitType {
+        case .EWA:
+            return "NETP3-\(code.padLeft(toLength: 2, withPad: "0"))"
+        case .NVQ:
+            return "ELTP3-\(code.padLeft(toLength: 3, withPad: "0"))"
+        case .CityAndGuilds:
+            return code
+        case .performance, .knowledge:
+            return code
+        }
+    }
     
     init(id: UUID = UUID(), code: String, eltCode: String, reference: String, title: String, description: String, unitType: UnitType, creditValue: Int, glh: Int, startDate: Date, endDate: Date, learningOutcomes: [LearningOutcome], allowedAssessmentMethods: [AssessmentMethod]) {
         self.id = id
@@ -66,6 +79,9 @@ class Unit: Identifiable, ObservableObject {
 enum UnitType: String, Codable {
     case performance
     case knowledge
+    case EWA
+    case NVQ
+    case CityAndGuilds
 }
 
 enum AssessmentMethod: String, Codable {
@@ -87,5 +103,15 @@ class PerformanceCriteria: Identifiable, ObservableObject {
         self.code = code
         self.description = description
         self.isCompleted = isCompleted
+    }
+}
+
+extension String {
+    func padLeft(toLength: Int, withPad: String) -> String {
+        if self.count >= toLength {
+            return self
+        }
+        let padding = String(repeating: withPad, count: toLength - self.count)
+        return padding + self
     }
 } 

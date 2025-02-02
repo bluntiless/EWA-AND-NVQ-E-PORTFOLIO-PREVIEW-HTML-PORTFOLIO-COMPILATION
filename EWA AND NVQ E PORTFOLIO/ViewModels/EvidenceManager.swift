@@ -14,7 +14,14 @@ class EvidenceManager: ObservableObject {
     
     // Add refresh throttling
     private var lastRefreshTime: Date?
-    private let minimumRefreshInterval: TimeInterval = 600 // 10 minutes
+    private let minimumRefreshInterval: TimeInterval = 120 // 2 minutes
+    private let forceRefreshInterval: TimeInterval = 600 // 10 minutes
+    
+    // Add rate limiter properties
+    private var requestTokens: Int = 10  // Reduced from 30 to 10 requests per window
+    private let maxTokens: Int = 10      // Reduced from 30 to 10
+    private let tokenRefillInterval: TimeInterval = 120.0  // Increased to 2 minutes
+    private var lastTokenRefillTime: Date = Date()
     
     init(storageManager: StorageManager = StorageManager()) {
         self.storageManager = storageManager
@@ -142,37 +149,136 @@ class EvidenceManager: ObservableObject {
         return Date().timeIntervalSince(lastRefresh) > minimumRefreshInterval
     }
     
+    private func waitForRequestToken() async throws {
+        while true {
+            // Refill tokens if enough time has passed
+            let now = Date()
+            let timeSinceRefill = now.timeIntervalSince(lastTokenRefillTime)
+            if timeSinceRefill >= tokenRefillInterval {
+                requestTokens = maxTokens
+                lastTokenRefillTime = now
+                // Add extra delay after refill
+                try await Task.sleep(nanoseconds: 5_000_000_000) // 5 second cooldown
+            }
+            
+            // If we have tokens, use one and proceed
+            if requestTokens > 0 {
+                requestTokens -= 1
+                // Add delay between requests even with tokens
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 second delay
+                return
+            }
+            
+            // Wait longer before checking again
+            try await Task.sleep(nanoseconds: 3_000_000_000)  // 3 seconds
+        }
+    }
+    
     func refreshEvidenceStatus() async {
         print("\n=== Starting Evidence Status Refresh ===")
         
         for evidence in evidenceItems {
             if let sharePointUrl = evidence.sharePointUrl {
-                do {
-                    // Store current hidden state
-                    let wasHidden = evidence.isHidden
-                    
-                    // Get fresh metadata
-                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
-                    
-                    // Update while preserving hidden state
-                    var updatedEvidence = evidence
-                    updatedEvidence.updateAssessmentInfo(from: metadata)
-                    updatedEvidence.isHidden = wasHidden  // Explicitly preserve hidden state
-                    
-                    // Update storage and UI
-                    if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
-                        evidenceItems[index] = updatedEvidence
-                        try await storageManager.updateEvidence(updatedEvidence)
+                // Try up to 3 times with increasing delays
+                for attempt in 1...3 {
+                    do {
+                        // Wait for available request token
+                        try await waitForRequestToken()
+                        
+                        // Exponential backoff delay on retry
+                        if attempt > 1 {
+                            let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
+                            try await Task.sleep(nanoseconds: delay)
+                        }
+                        
+                        let wasHidden = evidence.isHidden
+                        let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                        
+                        await MainActor.run {
+                            if let index = self.evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                                var updatedEvidence = evidence
+                                updatedEvidence.updateAssessmentInfo(from: metadata)
+                                updatedEvidence.isHidden = wasHidden
+                                self.evidenceItems[index] = updatedEvidence
+                                
+                                Task {
+                                    try? await self.storageManager.updateEvidence(updatedEvidence)
+                                }
+                            }
+                        }
+                        
+                        // Success - break retry loop
+                        break
+                        
+                    } catch {
+                        print("❌ Attempt \(attempt) failed for \(evidence.id): \(error)")
+                        if attempt == 3 {
+                            print("❌ All attempts failed for \(evidence.id)")
+                        }
                     }
-                } catch {
-                    print("❌ Failed to refresh status for \(evidence.id): \(error)")
                 }
             }
         }
         
-        // Trigger UI updates
-        objectWillChange.send()
-        updateProgress()
+        await MainActor.run {
+            objectWillChange.send()
+            updateProgress()
+        }
+    }
+    
+    private func needsMetadataRefresh(_ evidence: Evidence) -> Bool {
+        guard let lastCheck = evidence.lastMetadataCheck else {
+            return true // Never checked before
+        }
+        
+        let timeSinceLastCheck = Date().timeIntervalSince(lastCheck)
+        
+        // Always refresh if status is pending
+        if evidence.assessmentStatus == .pending {
+            return timeSinceLastCheck >= minimumRefreshInterval
+        }
+        
+        // For approved/rejected status, only check occasionally
+        if evidence.assessmentStatus == .approved || evidence.assessmentStatus == .rejected {
+            return timeSinceLastCheck >= forceRefreshInterval
+        }
+        
+        // For needs revision, check more frequently
+        if evidence.assessmentStatus == .needsRevision {
+            return timeSinceLastCheck >= minimumRefreshInterval
+        }
+        
+        return false
+    }
+    
+    func refreshEvidenceMetadata(for evidence: Evidence) async {
+        // Skip if refresh not needed
+        guard needsMetadataRefresh(evidence) else {
+            print("Skipping metadata refresh - too soon since last check")
+            return
+        }
+        
+        let wasHidden = evidence.isHidden
+        let currentIndex = evidenceItems.firstIndex(where: { $0.id == evidence.id })
+        
+        do {
+            let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
+            await MainActor.run {
+                if let index = currentIndex {
+                    var updatedEvidence = evidenceItems[index]
+                    updatedEvidence.updateAssessmentInfo(from: metadata)
+                    updatedEvidence.isHidden = wasHidden
+                    evidenceItems[index] = updatedEvidence
+                    
+                    Task {
+                        try? await storageManager.updateEvidence(updatedEvidence)
+                        saveHiddenStateToUserDefaults()
+                    }
+                }
+            }
+        } catch {
+            print("Failed to refresh metadata: \(error)")
+        }
     }
     
     func fetchEvidenceMetadata(for evidence: Evidence) async throws -> EvidenceMetadata {
@@ -180,23 +286,45 @@ class EvidenceManager: ObservableObject {
             throw EvidenceError.invalidURL
         }
         
-        // Use the existing verification response to get metadata
         do {
             try await TeamsManager.shared.authenticate()
             
-            // Use the SharePoint URL directly since we know it works
-            let metadataUrl = SharePointPathFormatter.constructUrl(
-                path: SharePointPathFormatter.formatPath(
-                    unitCode: evidence.unitCode,
-                    criteriaCode: evidence.criteriaCode
-                ),
-                fileName: URL(string: sharePointURL)?.lastPathComponent ?? "",
-                format: .metadata
-            )
+            // Handle HTML files differently
+            let isHtmlFile = sharePointURL.lowercased().hasSuffix(".html")
             
-            return try await TeamsManager.shared.fetchEvidenceMetadata(from: metadataUrl)
+            let urlString: String
+            if isHtmlFile {
+                // Use a different path format for HTML files
+                urlString = SharePointPathFormatter.constructUrl(
+                    path: SharePointPathFormatter.formatPath(
+                        unitCode: evidence.unitCode,
+                        criteriaCode: evidence.criteriaCode,
+                        isHtmlDocument: true
+                    ),
+                    fileName: URL(string: sharePointURL)?.lastPathComponent ?? "",
+                    format: .htmlMetadata
+                )
+            } else {
+                // Existing path for images
+                urlString = SharePointPathFormatter.constructUrl(
+                    path: SharePointPathFormatter.formatPath(
+                        unitCode: evidence.unitCode,
+                        criteriaCode: evidence.criteriaCode
+                    ),
+                    fileName: URL(string: sharePointURL)?.lastPathComponent ?? "",
+                    format: .metadata
+                )
+            }
+            
+            // Convert string to URL
+            guard let _ = URL(string: urlString) else { // Just validate URL format
+                throw EvidenceError.invalidURL
+            }
+            
+            // Use the URL version for the API call
+            return try await TeamsManager.shared.fetchEvidenceMetadata(from: urlString)
         } catch {
-            print("Metadata fetch failed: \(error)")
+            print("❌ Metadata fetch failed for \(evidence.id) (HTML: \(sharePointURL.lowercased().hasSuffix(".html"))): \(error)")
             throw error
         }
     }
@@ -339,36 +467,6 @@ class EvidenceManager: ObservableObject {
         }
     }
     
-    // Modify refreshEvidenceMetadata to preserve hidden state
-    func refreshEvidenceMetadata(for evidence: Evidence) async {
-        let wasHidden = evidence.isHidden  // Store current hidden state
-        let currentIndex = evidenceItems.firstIndex(where: { $0.id == evidence.id })
-        
-        do {
-            let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(for: evidence)
-            await MainActor.run {
-                if let index = currentIndex {
-                    var updatedEvidence = evidenceItems[index]
-                    // Update metadata while preserving hidden state
-                    updatedEvidence.assessmentStatus = metadata.assessmentStatus ?? .pending
-                    updatedEvidence.assessorFeedback = metadata.assessorFeedback
-                    updatedEvidence.assessorName = metadata.assessorName
-                    updatedEvidence.assessmentDate = metadata.assessmentDate
-                    updatedEvidence.isHidden = wasHidden  // Restore hidden state
-                    evidenceItems[index] = updatedEvidence
-                    
-                    // Ensure hidden state is saved
-                    Task {
-                        try? await storageManager.updateEvidence(updatedEvidence)
-                        saveHiddenStateToUserDefaults()
-                    }
-                }
-            }
-        } catch {
-            print("Failed to refresh metadata: \(error)")
-        }
-    }
-    
     // Only refresh in these specific cases:
     // 1. Manual pull-to-refresh
     func manualRefresh() async {
@@ -491,7 +589,10 @@ class EvidenceManager: ObservableObject {
         let updatedEvidence = try await withThrowingTaskGroup(of: Evidence.self) { group in
             var results: [Evidence] = []
             
-            for evidence in evidenceItems {
+            // Only refresh items that need it
+            let itemsNeedingRefresh = evidenceItems.filter { needsMetadataRefresh($0) }
+            
+            for evidence in itemsNeedingRefresh {
                 group.addTask {
                     if let sharePointUrl = evidence.sharePointUrl {
                         do {
@@ -501,7 +602,7 @@ class EvidenceManager: ObservableObject {
                             updated.updateAssessmentInfo(from: metadata)
                             return updated
                         } catch {
-                            print("Failed to fetch metadata for \(evidence.id): \(error)")
+                            print("Error fetching metadata for \(evidence.id): \(error)")
                             return evidence
                         }
                     }
@@ -510,13 +611,12 @@ class EvidenceManager: ObservableObject {
             }
             
             // Collect results
-            for try await result in group {
-                results.append(result)
+            for try await item in group {
+                results.append(item)
             }
             
             return results
         }
-        
         return updatedEvidence
     }
     

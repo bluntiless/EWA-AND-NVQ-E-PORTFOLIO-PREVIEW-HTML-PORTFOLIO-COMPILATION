@@ -13,7 +13,9 @@ struct PortfolioPreviewView: View {
         let ewaUnits = [
             // EWA Units (NETP3 series)
             "NETP3-01", "NETP3-03", "NETP3-04", 
-            "NETP3-05", "NETP3-06", "NETP3-07"
+            "NETP3-05", "NETP3-06", "NETP3-07",
+            // Add RPL units
+            "18ED3 02", "QIT3-001"
         ]
         
         let nvqUnits = [
@@ -26,6 +28,23 @@ struct PortfolioPreviewView: View {
     
     var body: some View {
         VStack {
+            // Preview button at the top
+            Button(action: {
+                // Existing preview action
+            }) {
+                HStack {
+                    Image(systemName: "doc.text.magnifyingglass")  // Changed from "eye"
+                    Text("View Portfolio Evidence")  // Added descriptive label
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+            }
+            .opacity(1)  // Always visible (changed from conditional visibility)
+            .padding(.top)
+            
             // Unit selector with improved layout
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHGrid(rows: [GridItem(.fixed(44))], spacing: 8) {
@@ -34,12 +53,13 @@ struct PortfolioPreviewView: View {
                             selectedUnit = unitCode
                         }) {
                             Text(getUnitDescription(unitCode))
-                                .font(.caption)
-                                .padding(.horizontal, 6)
+                                .font(.subheadline)
+                                .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(selectedUnit == unitCode ? Color.blue : Color.gray.opacity(0.2))
                                 .foregroundColor(selectedUnit == unitCode ? .white : .primary)
                                 .cornerRadius(8)
+                                .minimumScaleFactor(0.8)
                         }
                     }
                 }
@@ -73,10 +93,19 @@ struct PortfolioPreviewView: View {
     }
     
     private func getUnitDescription(_ unitCode: String) -> String {
-        if unitCode.starts(with: "NETP") {
-            return unitCode  // Keep full NETP3-XX format
-        } else {
-            return "NVQ \(unitCode)"  // Shows "NVQ 001" etc.
+        switch unitCode {
+            // ELTP3 units should show full codes
+            case "001": return "ELTP3/001"
+            case "002": return "ELTP3/002"
+            case "003": return "ELTP3/003"
+            case "004": return "ELTP3/004"
+            case "005": return "ELTP3/005"
+            case "006": return "ELTP3/006"
+            case "007": return "ELTP3/007"
+            // RPL units
+            case "18ED3 02": return "18ED3-02"
+            case "QIT3-001": return "QIT3-001"
+            default: return unitCode
         }
     }
     

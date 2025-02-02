@@ -57,8 +57,11 @@ struct PortfolioView: View {
                             Button {
                                 showingPreview = true
                             } label: {
-                                Image(systemName: "eye")
-                                    .foregroundColor(.blue)
+                                HStack {
+                                    Image(systemName: "doc.text.magnifyingglass")
+                                    Text("View Evidence")
+                                }
+                                .foregroundColor(.blue)
                             }
                         }
                         
@@ -146,7 +149,10 @@ struct EvidenceTabView: View {
     var body: some View {
         NavigationView {
             EvidenceListView()
-                .onReceive(Timer.publish(every: 30, on: .main, in: .common).autoconnect()) { _ in
+                .refreshable {  // Add pull-to-refresh
+                    await evidenceManager.refreshEvidenceStatus()
+                }
+                .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { _ in
                     Task {
                         await evidenceManager.refreshEvidenceStatus()
                     }
@@ -164,6 +170,63 @@ struct ProgressTabView: View {
             ProgressDetailView(
                 qualificationStore: qualificationStore
             )
+        }
+    }
+}
+
+struct PortfolioPreview: View {
+    @ObservedObject var qualification: Qualification
+    @State private var selectedUnit: Unit?
+    
+    var body: some View {
+        VStack {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack {
+                    ForEach(qualification.units) { unit in
+                        Button(action: {
+                            selectedUnit = unit
+                        }) {
+                            Text(unit.displayCode)
+                                .padding()
+                                .background(selectedUnit?.id == unit.id ? Color.blue : Color.gray)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+                .padding()
+            }
+            
+            if let unit = selectedUnit {
+                VStack(alignment: .leading) {
+                    Text("Unit \(unit.displayCode) Evidence Preview")
+                        .font(.headline)
+                    Text("Approved Criteria: \(unit.learningOutcomes.flatMap { $0.performanceCriteria }.filter { $0.isCompleted }.count) of \(unit.learningOutcomes.flatMap { $0.performanceCriteria }.count)")
+                    
+                    ForEach(unit.learningOutcomes) { outcome in
+                        VStack(alignment: .leading) {
+                            Text("Learning Outcome \(outcome.number): \(outcome.title)")
+                                .font(.subheadline)
+                                .padding(.vertical, 4)
+                            
+                            ForEach(outcome.performanceCriteria) { criteria in
+                                HStack {
+                                    Text(criteria.code)
+                                        .foregroundColor(.secondary)
+                                    Text(criteria.description)
+                                    Spacer()
+                                    if criteria.isCompleted {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .foregroundColor(.green)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                    }
+                }
+                .padding()
+            }
         }
     }
 }

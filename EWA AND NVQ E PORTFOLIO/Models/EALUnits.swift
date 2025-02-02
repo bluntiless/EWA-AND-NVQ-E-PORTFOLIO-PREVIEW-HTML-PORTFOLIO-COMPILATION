@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 enum DateHelper {
     static func getStandardDateRange() -> (start: Date, end: Date) {
@@ -12,12 +13,12 @@ enum EALUnits {
     static let ewaUnits: [Unit] = [
         // NETP3-01
         Unit(
-            code: "NETP3-01",
+            code: "01",  // Just the number - displayCode will add "NETP3-"
             eltCode: "EWA01",
             reference: "NETP3-01",
             title: "Apply Health, Safety and Environmental Considerations",
             description: "Understanding and applying health and safety principles in electrical installation",
-            unitType: .performance,
+            unitType: .EWA,  // Critical: Must be .EWA for correct formatting
             creditValue: 3,
             glh: 26,
             startDate: DateHelper.getStandardDateRange().start,
@@ -83,15 +84,15 @@ enum EALUnits {
             ],
             allowedAssessmentMethods: [.directObservation, .productEvidence]
         ),
-
+        
         // NETP3-03
         Unit(
-            code: "NETP3-03",
+            code: "03",  // Just the number
             eltCode: "EWA03",
             reference: "NETP3-03",
             title: "Organise and Oversee the Electrical Work Environment",
             description: "Organizing and overseeing electrical work activities",
-            unitType: .performance,
+            unitType: .EWA,  // Changed from .performance to .EWA
             creditValue: 3,
             glh: 26,
             startDate: DateHelper.getStandardDateRange().start,
@@ -144,7 +145,7 @@ enum EALUnits {
             code: "NETP3-04",
             eltCode: "EWA04",
             reference: "NETP3-04",
-            title: "Apply Design and Installation Practices and Procedures",
+            title: "Install Electrical Equipment",
             description: "Installing electrical systems and equipment",
             unitType: .performance,
             creditValue: 4,
@@ -254,47 +255,48 @@ enum EALUnits {
                     number: "1",
                     title: "Preparation and Safety",
                     performanceCriteria: [
-                        PerformanceCriteria(code: "05-1.1", description: "Evaluate and apply appropriate procedures to include:"),
-                        PerformanceCriteria(code: "05-1.1a", description: "Selecting appropriate tools/equipment to enable termination and connection"),
-                        PerformanceCriteria(code: "05-1.1b", description: "Adopting appropriate PPE"),
-                        PerformanceCriteria(code: "05-1.1c", description: "Following a safe system of work (e.g. risk assessment, method statement, permit to work procedure)"),
-                        PerformanceCriteria(code: "05-1.2", description: "Assess/confirm it is safe to complete termination & connection in terms of:"),
-                        PerformanceCriteria(code: "05-1.2a", description: "Checking for presence of supply/carrying out safe isolation"),
-                        PerformanceCriteria(code: "05-1.2b", description: "Mechanical soundness of the electrical equipment to be connected to"),
-                        PerformanceCriteria(code: "05-1.2c", description: "Checking for unsafe situations")
+                        PerformanceCriteria(code: "1.1", description: "Evaluate and apply appropriate procedures to include:"),
+                        PerformanceCriteria(code: "1.1a", description: "Selecting appropriate tools/equipment for termination and connection"),
+                        PerformanceCriteria(code: "1.1b", description: "Adopting appropriate PPE"),
+                        PerformanceCriteria(code: "1.1c", description: "Following safe system of work (risk assessment, method statement)"),
+                        PerformanceCriteria(code: "1.2", description: "Assess/confirm it is safe to complete termination & connection:"),
+                        PerformanceCriteria(code: "1.2a", description: "Checking for presence of supply/carrying out safe isolation"),
+                        PerformanceCriteria(code: "1.2b", description: "Mechanical soundness of equipment to be connected to"),
+                        PerformanceCriteria(code: "1.2c", description: "Checking for unsafe situations")
                     ]
                 ),
                 LearningOutcome(
                     number: "2",
                     title: "Termination and Connection",
                     performanceCriteria: [
-                        PerformanceCriteria(code: "05-2.1", description: "Terminate/connect cables/conductors according to instructions/18th/specs:"),
-                        PerformanceCriteria(code: "05-2.1a", description: "Single core cable (singles)"),
-                        PerformanceCriteria(code: "05-2.1b", description: "Multicore insulated cable"),
-                        PerformanceCriteria(code: "05-2.1c", description: "PVC / PVC flat profile cable (twin and earth)"),
-                        PerformanceCriteria(code: "05-2.1d", description: "MICC cable"),
-                        PerformanceCriteria(code: "05-2.1e", description: "Fire performance (such as FP 200 etc.)"),
-                        PerformanceCriteria(code: "05-2.1f", description: "SWA cable"),
-                        PerformanceCriteria(code: "05-2.1g", description: "GSWB galvanised steel wire braid"),
-                        PerformanceCriteria(code: "05-2.1h", description: "Data cable"),
-                        PerformanceCriteria(code: "05-2.2", description: "Connect equipment according to instructions/18th/drawings/specs:"),
-                        PerformanceCriteria(code: "05-2.2a", description: "Isolators /switches"),
-                        PerformanceCriteria(code: "05-2.2b", description: "Socket outlets"),
-                        PerformanceCriteria(code: "05-2.2c", description: "Distribution-boards / consumer control units"),
-                        PerformanceCriteria(code: "05-2.2d", description: "Luminaires"),
-                        PerformanceCriteria(code: "05-2.2e", description: "Electric motors / motor control equipment"),
-                        PerformanceCriteria(code: "05-2.2f", description: "Overcurrent protective devices"),
-                        PerformanceCriteria(code: "05-2.2g", description: "Earthing terminals"),
-                        PerformanceCriteria(code: "05-2.2h", description: "Control panels"),
-                        PerformanceCriteria(code: "05-2.2i", description: "Data socket outlets or data connections"),
-                        PerformanceCriteria(code: "05-2.2j", description: "Fire detection/alarm components"),
-                        PerformanceCriteria(code: "05-2.2k", description: "Other appropriate equipment (such as: heating system components etc.)"),
-                        PerformanceCriteria(code: "05-2.3", description: "Terminate and connect conductors, using appropriate methods:"),
-                        PerformanceCriteria(code: "05-2.3a", description: "Screwing"),
-                        PerformanceCriteria(code: "05-2.3b", description: "Crimping"),
-                        PerformanceCriteria(code: "05-2.3c", description: "Soldering"),
-                        PerformanceCriteria(code: "05-2.3d", description: "Non-screw compression"),
-                        PerformanceCriteria(code: "05-2.3e", description: "Insulation displacement")
+                        PerformanceCriteria(code: "2.1", description: "Terminate/connect cables/conductors according to instructions/BS7671:"),
+                        PerformanceCriteria(code: "2.1a", description: "Single core cable (singles)"),
+                        PerformanceCriteria(code: "2.1b", description: "Multicore insulated"),
+                        PerformanceCriteria(code: "2.1c", description: "PVC/PVC flat profile cable"),
+                        PerformanceCriteria(code: "2.1d", description: "MICC"),
+                        PerformanceCriteria(code: "2.1e", description: "Fire performance"),
+                        PerformanceCriteria(code: "2.1f", description: "SWA cable"),
+                        PerformanceCriteria(code: "2.1g", description: "Data cables"),
+                        PerformanceCriteria(code: "2.2", description: "Terminate/connect to electrical equipment according to instructions:"),
+                        PerformanceCriteria(code: "2.2a", description: "Isolators/switches"),
+                        PerformanceCriteria(code: "2.2b", description: "Socket-outlets"),
+                        PerformanceCriteria(code: "2.2c", description: "Distribution boards/consumer units"),
+                        PerformanceCriteria(code: "2.2d", description: "Luminaires"),
+                        PerformanceCriteria(code: "2.2e", description: "Control equipment"),
+                        PerformanceCriteria(code: "2.2f", description: "Data socket outlets")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "3",
+                    title: "Quality Checks",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "3.1", description: "Check terminations/connections meet requirements:"),
+                        PerformanceCriteria(code: "3.1a", description: "Correct polarity"),
+                        PerformanceCriteria(code: "3.1b", description: "Correct colour coding"),
+                        PerformanceCriteria(code: "3.1c", description: "Correct sizing"),
+                        PerformanceCriteria(code: "3.1d", description: "Secure connections"),
+                        PerformanceCriteria(code: "3.1e", description: "Signs of damage"),
+                        PerformanceCriteria(code: "3.2", description: "Ensure terminations/connections are mechanically and electrically sound")
                     ]
                 )
             ],
@@ -362,7 +364,7 @@ enum EALUnits {
             code: "NETP3-07",
             eltCode: "EWA07",
             reference: "ENTP3-07",
-            title: "Apply Fault Diagnosis and Rectification",
+            title: "Diagnose and Correct Electrical Faults",
             description: "Diagnosing and rectifying faults in electrical installations",
             unitType: .performance,
             creditValue: 3,
@@ -436,123 +438,63 @@ enum EALUnits {
                 )
             ],
             allowedAssessmentMethods: [.directObservation, .productEvidence]
+        ),
+
+        // Add to ewaUnits array:
+        Unit(
+            code: "18ED3 02",  // Updated from BS7671-18
+            eltCode: "BS7671",
+            reference: "18ED3 02",
+            title: "Requirements for Electrical Installations - IET Wiring Regulations 18th Edition",
+            description: "Understanding and applying the IET Wiring Regulations BS7671:2018",
+            unitType: .EWA,
+            creditValue: 3,
+            glh: 30,
+            startDate: DateHelper.getStandardDateRange().start,
+            endDate: DateHelper.getStandardDateRange().end,
+            learningOutcomes: [
+                LearningOutcome(
+                    number: "1",
+                    title: "BS7671 Requirements",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "1.1", description: "Hold valid BS7671:2018 qualification certificate"),
+                        PerformanceCriteria(code: "1.2", description: "Certificate must be within current amendment period")
+                    ]
+                )
+            ],
+            allowedAssessmentMethods: [.productEvidence]  // Using existing .productEvidence
+        ),
+
+        Unit(
+            code: "QIT3-001",  // Updated from 2391-50
+            eltCode: "2391",
+            reference: "QIT3-001",
+            title: "Initial Verification and Certification of Electrical Installations",
+            description: "Initial verification, testing and certification of electrical installations",
+            unitType: .EWA,
+            creditValue: 4,
+            glh: 35,
+            startDate: DateHelper.getStandardDateRange().start,
+            endDate: DateHelper.getStandardDateRange().end,
+            learningOutcomes: [
+                LearningOutcome(
+                    number: "1",
+                    title: "Initial Verification Requirements",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "1.1", description: "Hold valid 2391-50 or equivalent qualification certificate"),
+                        PerformanceCriteria(code: "1.2", description: "Certificate must be within current validity period")
+                    ]
+                )
+            ],
+            allowedAssessmentMethods: [.productEvidence]  // Using existing .productEvidence
         )
     ]
 
-    static let eal1605Units: [Unit] = [
-        Unit(
-            code: "QELF3/001",
-            eltCode: "1605-001",
-            reference: "1605-REF-001",
-            title: "Understanding Electrical Installation Standards",
-            description: "Core principles of electrical installation",
-            unitType: .performance,
-            creditValue: 12,
-            glh: 6,
-            startDate: DateHelper.getStandardDateRange().start,
-            endDate: DateHelper.getStandardDateRange().end,
-            learningOutcomes: [
-                LearningOutcome(
-                    number: "1",
-                    title: "Installation Standards",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "1.1", description: "Select appropriate wiring systems"),
-                        PerformanceCriteria(code: "1.2", description: "Install wiring systems including:"),
-                        PerformanceCriteria(code: "1.2a", description: "PVC singles in conduit"),
-                        PerformanceCriteria(code: "1.2b", description: "Twin and earth cables"),
-                        PerformanceCriteria(code: "1.2c", description: "SWA cables"),
-                        PerformanceCriteria(code: "1.2d", description: "Fire resistant cables"),
-                        PerformanceCriteria(code: "1.3", description: "Install protective devices including:"),
-                        PerformanceCriteria(code: "1.3a", description: "Main switches"),
-                        PerformanceCriteria(code: "1.3b", description: "Circuit breakers"),
-                        PerformanceCriteria(code: "1.3c", description: "RCDs"),
-                        PerformanceCriteria(code: "1.3d", description: "RCBOs"),
-                        PerformanceCriteria(code: "1.4", description: "Install earthing systems including:"),
-                        PerformanceCriteria(code: "1.4a", description: "Main earthing terminal"),
-                        PerformanceCriteria(code: "1.4b", description: "Circuit protective conductors"),
-                        PerformanceCriteria(code: "1.4c", description: "Supplementary bonding")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "2",
-                    title: "Testing and Inspection",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "2.1", description: "Carry out initial inspection"),
-                        PerformanceCriteria(code: "2.2", description: "Test installations including:"),
-                        PerformanceCriteria(code: "2.2a", description: "Continuity of protective conductors"),
-                        PerformanceCriteria(code: "2.2b", description: "Insulation resistance"),
-                        PerformanceCriteria(code: "2.2c", description: "Polarity"),
-                        PerformanceCriteria(code: "2.2d", description: "Earth fault loop impedance"),
-                        PerformanceCriteria(code: "2.2e", description: "RCD operation"),
-                        PerformanceCriteria(code: "2.3", description: "Record test results"),
-                        PerformanceCriteria(code: "2.4", description: "Complete certification documentation")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "3",
-                    title: "Fault Diagnosis",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "3.1", description: "Identify common electrical faults"),
-                        PerformanceCriteria(code: "3.2", description: "Use appropriate test equipment"),
-                        PerformanceCriteria(code: "3.3", description: "Apply logical fault finding procedures"),
-                        PerformanceCriteria(code: "3.4", description: "Repair faults in:"),
-                        PerformanceCriteria(code: "3.4a", description: "Lighting circuits"),
-                        PerformanceCriteria(code: "3.4b", description: "Power circuits"),
-                        PerformanceCriteria(code: "3.4c", description: "Motors and controls")
-                    ]
-                )
-            ],
-            allowedAssessmentMethods: [.directObservation, .productEvidence]
-        ),
-
-        // QELF3/002
-        Unit(
-            code: "QELF3/002",
-            eltCode: "1605-002",
-            reference: "1605-REF-002",
-            title: "Electrical Scientific Principles and Technologies",
-            description: "Understanding electrical theory and applications",
-            unitType: .knowledge,
-            creditValue: 10,
-            glh: 5,
-            startDate: DateHelper.getStandardDateRange().start,
-            endDate: DateHelper.getStandardDateRange().end,
-            learningOutcomes: [
-                LearningOutcome(
-                    number: "1",
-                    title: "Electrical Theory",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "1.1", description: "Understand fundamental electrical principles:"),
-                        PerformanceCriteria(code: "1.1a", description: "Ohm's Law"),
-                        PerformanceCriteria(code: "1.1b", description: "Power equations"),
-                        PerformanceCriteria(code: "1.1c", description: "Energy calculations"),
-                        PerformanceCriteria(code: "1.2", description: "Apply circuit principles:"),
-                        PerformanceCriteria(code: "1.2a", description: "Series circuits"),
-                        PerformanceCriteria(code: "1.2b", description: "Parallel circuits"),
-                        PerformanceCriteria(code: "1.2c", description: "Series-parallel circuits")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "2",
-                    title: "Electrical Systems",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "2.1", description: "Understand three-phase systems:"),
-                        PerformanceCriteria(code: "2.1a", description: "Star connection"),
-                        PerformanceCriteria(code: "2.1b", description: "Delta connection"),
-                        PerformanceCriteria(code: "2.1c", description: "Power calculations"),
-                        PerformanceCriteria(code: "2.2", description: "Understand transformer principles:"),
-                        PerformanceCriteria(code: "2.2a", description: "Turns ratio"),
-                        PerformanceCriteria(code: "2.2b", description: "Voltage transformation"),
-                        PerformanceCriteria(code: "2.2c", description: "Current transformation")
-                    ]
-                )
-            ],
-            allowedAssessmentMethods: [.professionalDiscussion, .productEvidence]
-        ),
-
+    static let nvqUnits: [Unit] = [
+        // Add ELTK3 knowledge units first (RPL units)
         Unit(
             code: "ELTK3-001",
-            eltCode: "1605-ELTK3-001",
+            eltCode: "1605-ELTK3-001", 
             reference: "ELTK3-001",
             title: "Understanding health and safety legislation, practices and procedures",
             description: "Installing and maintaining electrotechnical systems and equipment",
@@ -612,7 +554,7 @@ enum EALUnits {
         Unit(
             code: "ELTK3-002",
             eltCode: "1605-ELTK3-002",
-            reference: "ELTK3-002",
+            reference: "ELTK3-002", 
             title: "Understanding environmental legislation, working practices and principles",
             description: "Environmental technology systems and legislation",
             unitType: .knowledge,
@@ -850,6 +792,138 @@ enum EALUnits {
         ),
 
         Unit(
+            code: "ELTK3-005",
+            eltCode: "1605-ELTK3-005",
+            reference: "ELTK3-005",
+            title: "Understanding the practices and procedures for the termination and connection of conductors",
+            description: "Termination and connection of electrical conductors",
+            unitType: .knowledge,
+            creditValue: 4,
+            glh: 35,
+            startDate: DateHelper.getStandardDateRange().start,
+            endDate: DateHelper.getStandardDateRange().end,
+            learningOutcomes: [
+                LearningOutcome(
+                    number: "1",
+                    title: "Preparation and Safety",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "1.1", description: "Evaluate and apply appropriate procedures to include:"),
+                        PerformanceCriteria(code: "1.1a", description: "Selecting appropriate tools/equipment for termination and connection"),
+                        PerformanceCriteria(code: "1.1b", description: "Adopting appropriate PPE"),
+                        PerformanceCriteria(code: "1.1c", description: "Following safe system of work (risk assessment, method statement)"),
+                        PerformanceCriteria(code: "1.2", description: "Assess/confirm it is safe to complete termination & connection:"),
+                        PerformanceCriteria(code: "1.2a", description: "Checking for presence of supply/carrying out safe isolation"),
+                        PerformanceCriteria(code: "1.2b", description: "Mechanical soundness of equipment to be connected to"),
+                        PerformanceCriteria(code: "1.2c", description: "Checking for unsafe situations")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "2",
+                    title: "Termination and Connection",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "2.1", description: "Terminate/connect cables/conductors according to instructions/BS7671:"),
+                        PerformanceCriteria(code: "2.1a", description: "Single core cable (singles)"),
+                        PerformanceCriteria(code: "2.1b", description: "Multicore insulated"),
+                        PerformanceCriteria(code: "2.1c", description: "PVC/PVC flat profile cable"),
+                        PerformanceCriteria(code: "2.1d", description: "MICC"),
+                        PerformanceCriteria(code: "2.1e", description: "Fire performance"),
+                        PerformanceCriteria(code: "2.1f", description: "SWA cable"),
+                        PerformanceCriteria(code: "2.1g", description: "Data cables"),
+                        PerformanceCriteria(code: "2.2", description: "Terminate/connect to electrical equipment according to instructions:"),
+                        PerformanceCriteria(code: "2.2a", description: "Isolators/switches"),
+                        PerformanceCriteria(code: "2.2b", description: "Socket-outlets"),
+                        PerformanceCriteria(code: "2.2c", description: "Distribution boards/consumer units"),
+                        PerformanceCriteria(code: "2.2d", description: "Luminaires"),
+                        PerformanceCriteria(code: "2.2e", description: "Control equipment"),
+                        PerformanceCriteria(code: "2.2f", description: "Data socket outlets")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "3",
+                    title: "Quality Checks",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "3.1", description: "Check terminations/connections meet requirements:"),
+                        PerformanceCriteria(code: "3.1a", description: "Correct polarity"),
+                        PerformanceCriteria(code: "3.1b", description: "Correct colour coding"),
+                        PerformanceCriteria(code: "3.1c", description: "Correct sizing"),
+                        PerformanceCriteria(code: "3.1d", description: "Secure connections"),
+                        PerformanceCriteria(code: "3.1e", description: "Signs of damage"),
+                        PerformanceCriteria(code: "3.2", description: "Ensure terminations/connections are mechanically and electrically sound")
+                    ]
+                )
+            ],
+            allowedAssessmentMethods: [.professionalDiscussion, .productEvidence]
+        ),
+
+        Unit(
+            code: "ELTK3-006",
+            eltCode: "1605-ELTK3-006",
+            reference: "ELTK3-006",
+            title: "Inspecting, testing, commissioning and certifying electrotechnical systems",
+            description: "Testing and certification of electrical installations",
+            unitType: .performance,
+            creditValue: 4,
+            glh: 35,
+            startDate: DateHelper.getStandardDateRange().start,
+            endDate: DateHelper.getStandardDateRange().end,
+            learningOutcomes: [
+                LearningOutcome(
+                    number: "1",
+                    title: "Safety Confirmation",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "1.1", description: "Carry out safe isolation procedures in accordance with regulatory requirements"),
+                        PerformanceCriteria(code: "1.2", description: "Ensure health and safety of self and others within work location"),
+                        PerformanceCriteria(code: "1.3", description: "Check safety of electrical systems prior to inspection and testing")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "2",
+                    title: "Visual Inspection",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "2.1", description: "Carry out visual inspection according to IET Wiring Regulations:"),
+                        PerformanceCriteria(code: "2.1a", description: "Confirming safety of the installation"),
+                        PerformanceCriteria(code: "2.1b", description: "Checking compliance with specifications"),
+                        PerformanceCriteria(code: "2.1c", description: "Identifying visible defects"),
+                        PerformanceCriteria(code: "2.2", description: "Complete inspection schedule recording all observations")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "3",
+                    title: "Testing",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "3.1", description: "Select appropriate test instruments and verify calibration for:"),
+                        PerformanceCriteria(code: "3.1a", description: "Continuity testing"),
+                        PerformanceCriteria(code: "3.1b", description: "Insulation resistance testing"),
+                        PerformanceCriteria(code: "3.1c", description: "Earth fault loop impedance testing"),
+                        PerformanceCriteria(code: "3.1d", description: "RCD testing"),
+                        PerformanceCriteria(code: "3.1e", description: "Prospective fault current testing"),
+                        PerformanceCriteria(code: "3.2", description: "Carry out tests in accordance with BS7671:"),
+                        PerformanceCriteria(code: "3.2a", description: "Continuity of protective conductors"),
+                        PerformanceCriteria(code: "3.2b", description: "Continuity of ring final circuit conductors"),
+                        PerformanceCriteria(code: "3.2c", description: "Insulation resistance"),
+                        PerformanceCriteria(code: "3.2d", description: "Polarity"),
+                        PerformanceCriteria(code: "3.2e", description: "Earth fault loop impedance"),
+                        PerformanceCriteria(code: "3.2f", description: "RCD operation"),
+                        PerformanceCriteria(code: "3.2g", description: "Phase sequence"),
+                        PerformanceCriteria(code: "3.2h", description: "Functional testing")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "4",
+                    title: "Certification",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "4.1", description: "Complete certification documentation according to BS7671:"),
+                        PerformanceCriteria(code: "4.1a", description: "Electrical Installation Certificate"),
+                        PerformanceCriteria(code: "4.1b", description: "Schedule of Inspections"),
+                        PerformanceCriteria(code: "4.1c", description: "Schedule of Test Results"),
+                        PerformanceCriteria(code: "4.1d", description: "Minor Electrical Installation Works Certificate")
+                    ]
+                )
+            ],
+            allowedAssessmentMethods: [.directObservation, .productEvidence]
+        ),
+
+        Unit(
             code: "ELTP3/001",
             eltCode: "1605-ELTP3-001",
             reference: "ELTP3/001",
@@ -894,11 +968,8 @@ enum EALUnits {
                         PerformanceCriteria(code: "3.1", description: "Demonstrate personal conduct and behaviour around the workplace"),
                         PerformanceCriteria(code: "3.2", description: "Apply procedures for safe use, maintenance & storage as per:"),
                         PerformanceCriteria(code: "3.2a", description: "Workplace policies (company and site)"),
-                        PerformanceCriteria(code: "3.2b", description: "Supplier information"),
-                        PerformanceCriteria(code: "3.2c", description: "Manufacturer's instructions"),
-                        PerformanceCriteria(code: "3.3", description: "Comply with hazard warning and mandatory instruction notices"),
-                        PerformanceCriteria(code: "3.4", description: "Apply procedures to ensure safety through correct use of guards"),
-                        PerformanceCriteria(code: "3.5", description: "Use access equipment correctly")
+                        PerformanceCriteria(code: "3.2b", description: "Manufacturer's instructions"),
+                        PerformanceCriteria(code: "3.2c", description: "Supplier information")
                     ]
                 ),
                 LearningOutcome(
@@ -935,10 +1006,38 @@ enum EALUnits {
                         PerformanceCriteria(code: "1.2", description: "Implement waste management procedures"),
                         PerformanceCriteria(code: "1.3", description: "Follow environmental legislation requirements")
                     ]
+                ),
+                LearningOutcome(
+                    number: "2",
+                    title: "Handle and Store Materials",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "2.1", description: "Handle and store materials and equipment in accordance with:"),
+                        PerformanceCriteria(code: "2.1a", description: "Environmental Protection Act"),
+                        PerformanceCriteria(code: "2.1b", description: "The Hazardous Waste Regulations"),
+                        PerformanceCriteria(code: "2.1c", description: "Control of Pollution Act"),
+                        PerformanceCriteria(code: "2.1d", description: "The Control of Noise at Work Regulations"),
+                        PerformanceCriteria(code: "2.1e", description: "The Waste Electrical and Electronic Equipment Regulations")
+                    ]
+                ),
+                LearningOutcome(
+                    number: "3",
+                    title: "Environmental Technology Systems",
+                    performanceCriteria: [
+                        PerformanceCriteria(code: "3.1", description: "Provide information on environmental technology systems:"),
+                        PerformanceCriteria(code: "3.1a", description: "Solar photovoltaic"),
+                        PerformanceCriteria(code: "3.1b", description: "Wind energy"),
+                        PerformanceCriteria(code: "3.1c", description: "Heat pumps"),
+                        PerformanceCriteria(code: "3.1d", description: "Biomass heating"),
+                        PerformanceCriteria(code: "3.1e", description: "Solar thermal"),
+                        PerformanceCriteria(code: "3.1f", description: "Combined heat and power (CHP)")
+                    ]
                 )
             ],
             allowedAssessmentMethods: [.directObservation, .productEvidence]
         ),
+
+        // Keep existing performance units after ELTK3 units
+        // ... existing ELTP3 performance units remain unchanged
 
         Unit(
             code: "ELTP3/003",
@@ -1001,40 +1100,6 @@ enum EALUnits {
                         PerformanceCriteria(code: "4.2c", description: "Industry working practices"),
                         PerformanceCriteria(code: "4.2d", description: "Health and safety requirements"),
                         PerformanceCriteria(code: "4.3", description: "Apply procedures when non-compliance identified")
-                    ]
-                )
-            ],
-            allowedAssessmentMethods: [.directObservation, .productEvidence]
-        ),
-
-        Unit(
-            code: "AM2",
-            eltCode: "1605-AM2",
-            reference: "AM2",
-            title: "Electrotechnical Occupation Competence",
-            description: "Assessment of occupational competence",
-            unitType: .performance,
-            creditValue: 4,
-            glh: 35,
-            startDate: DateHelper.getStandardDateRange().start,
-            endDate: DateHelper.getStandardDateRange().end,
-            learningOutcomes: [
-                LearningOutcome(
-                    number: "1",
-                    title: "Practical Assessment",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "1.1", description: "Complete installation to required standards"),
-                        PerformanceCriteria(code: "1.2", description: "Test and commission installations"),
-                        PerformanceCriteria(code: "1.3", description: "Diagnose and rectify faults")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "2",
-                    title: "Theory Assessment",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "2.1", description: "Demonstrate knowledge of electrical theory"),
-                        PerformanceCriteria(code: "2.2", description: "Apply safe working practices"),
-                        PerformanceCriteria(code: "2.3", description: "Complete required documentation")
                     ]
                 )
             ],
@@ -1165,74 +1230,6 @@ enum EALUnits {
         ),
 
         Unit(
-            code: "ELTP3/006",
-            eltCode: "1605-ELTP3-006",
-            reference: "ELTP3/006",
-            title: "Inspecting, testing, commissioning and certifying electrotechnical systems",
-            description: "Testing and certification of electrical installations",
-            unitType: .performance,
-            creditValue: 4,
-            glh: 35,
-            startDate: DateHelper.getStandardDateRange().start,
-            endDate: DateHelper.getStandardDateRange().end,
-            learningOutcomes: [
-                LearningOutcome(
-                    number: "1",
-                    title: "Safety Confirmation",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "1.1", description: "Carry out safe isolation procedures in accordance with regulatory requirements"),
-                        PerformanceCriteria(code: "1.2", description: "Ensure health and safety of self and others within work location"),
-                        PerformanceCriteria(code: "1.3", description: "Check safety of electrical systems prior to inspection and testing")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "2",
-                    title: "Visual Inspection",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "2.1", description: "Carry out visual inspection according to IET Wiring Regulations:"),
-                        PerformanceCriteria(code: "2.1a", description: "Confirming safety of the installation"),
-                        PerformanceCriteria(code: "2.1b", description: "Checking compliance with specifications"),
-                        PerformanceCriteria(code: "2.1c", description: "Identifying visible defects"),
-                        PerformanceCriteria(code: "2.2", description: "Complete inspection schedule recording all observations")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "3",
-                    title: "Testing",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "3.1", description: "Select appropriate test instruments and verify calibration for:"),
-                        PerformanceCriteria(code: "3.1a", description: "Continuity testing"),
-                        PerformanceCriteria(code: "3.1b", description: "Insulation resistance testing"),
-                        PerformanceCriteria(code: "3.1c", description: "Earth fault loop impedance testing"),
-                        PerformanceCriteria(code: "3.1d", description: "RCD testing"),
-                        PerformanceCriteria(code: "3.1e", description: "Prospective fault current testing"),
-                        PerformanceCriteria(code: "3.2", description: "Carry out tests in accordance with BS7671:"),
-                        PerformanceCriteria(code: "3.2a", description: "Continuity of protective conductors"),
-                        PerformanceCriteria(code: "3.2b", description: "Continuity of ring final circuit conductors"),
-                        PerformanceCriteria(code: "3.2c", description: "Insulation resistance"),
-                        PerformanceCriteria(code: "3.2d", description: "Polarity"),
-                        PerformanceCriteria(code: "3.2e", description: "Earth fault loop impedance"),
-                        PerformanceCriteria(code: "3.2f", description: "RCD operation"),
-                        PerformanceCriteria(code: "3.2g", description: "Phase sequence"),
-                        PerformanceCriteria(code: "3.2h", description: "Functional testing")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "4",
-                    title: "Certification",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "4.1", description: "Complete certification documentation according to BS7671:"),
-                        PerformanceCriteria(code: "4.1a", description: "Electrical Installation Certificate"),
-                        PerformanceCriteria(code: "4.1b", description: "Schedule of Inspections"),
-                        PerformanceCriteria(code: "4.1c", description: "Schedule of Test Results"),
-                        PerformanceCriteria(code: "4.1d", description: "Minor Electrical Installation Works Certificate")
-                    ]
-                )
-            ],
-            allowedAssessmentMethods: [.directObservation, .productEvidence]
-        ),
-
-        Unit(
             code: "ELTP3/007",
             eltCode: "1605-ELTP3-007",
             reference: "ELTP3/007",
@@ -1278,19 +1275,7 @@ enum EALUnits {
                         PerformanceCriteria(code: "2.5e", description: "Loss of phase/line"),
                         PerformanceCriteria(code: "2.5f", description: "Incorrect phase rotation"),
                         PerformanceCriteria(code: "2.5g", description: "High resistance joints"),
-                        PerformanceCriteria(code: "2.5h", description: "Component, accessory or equipment faults"),
-                        PerformanceCriteria(code: "2.6", description: "Appropriate methods for locating faults on electrical systems equipment:"),
-                        PerformanceCriteria(code: "2.6a", description: "Interpretation of data"),
-                        PerformanceCriteria(code: "2.6b", description: "Safe working practices"),
-                        PerformanceCriteria(code: "2.6c", description: "Procedures and sequences – logical approach"),
-                        PerformanceCriteria(code: "2.7", description: "Appropriate tools & instruments correctly to complete fault diagnosis work:"),
-                        PerformanceCriteria(code: "2.7a", description: "Voltage indicator"),
-                        PerformanceCriteria(code: "2.7b", description: "Low resistance ohm meter"),
-                        PerformanceCriteria(code: "2.7c", description: "Insulation resistance testers"),
-                        PerformanceCriteria(code: "2.7d", description: "EFLI and PFC tester"),
-                        PerformanceCriteria(code: "2.7e", description: "RCD tester"),
-                        PerformanceCriteria(code: "2.7f", description: "Tong tester/clamp on ammeter"),
-                        PerformanceCriteria(code: "2.7g", description: "Phase sequence tester")
+                        PerformanceCriteria(code: "2.5h", description: "Component, accessory or equipment faults")
                     ]
                 ),
                 LearningOutcome(
@@ -1313,67 +1298,6 @@ enum EALUnits {
                 )
             ],
             allowedAssessmentMethods: [.directObservation, .productEvidence]
-        ),
-
-        Unit(
-            code: "ELTK3-006",
-            eltCode: "1605-ELTK3-006",
-            reference: "ELTK3-006",
-            title: "Understanding the principles, practices and legislation for inspection, testing and commissioning",
-            description: "Testing and certification procedures",
-            unitType: .knowledge,
-            creditValue: 6,
-            glh: 52,
-            startDate: DateHelper.getStandardDateRange().start,
-            endDate: DateHelper.getStandardDateRange().end,
-            learningOutcomes: [
-                LearningOutcome(
-                    number: "2",
-                    title: "Visual inspection procedures",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "2.2", description: "Visual inspection according to install spec/IET Regs & guidance note 3:"),
-                        PerformanceCriteria(code: "2.2a", description: "Isolation"),
-                        PerformanceCriteria(code: "2.2b", description: "Presence of means of earthing"),
-                        PerformanceCriteria(code: "2.2c", description: "The installation methods of wiring systems and equipment"),
-                        PerformanceCriteria(code: "2.2d", description: "The selection of conductors and cables"),
-                        PerformanceCriteria(code: "2.2e", description: "The selection of protective and isolation devices"),
-                        PerformanceCriteria(code: "2.2f", description: "Presence of protective conductors and bonding"),
-                        PerformanceCriteria(code: "2.2g", description: "Type and rating of overcurrent protective devices"),
-                        PerformanceCriteria(code: "2.2h", description: "Routing and identification/labelling of conductors, cables and flexible cords")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "3",
-                    title: "Testing procedures",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "3.1", description: "Select the test instruments and their accessories for the following tests:"),
-                        PerformanceCriteria(code: "3.1a", description: "Continuity"),
-                        PerformanceCriteria(code: "3.1b", description: "Insulation resistance"),
-                        PerformanceCriteria(code: "3.1c", description: "Polarity"),
-                        PerformanceCriteria(code: "3.1d", description: "Earth fault loop impedance"),
-                        PerformanceCriteria(code: "3.1e", description: "Prospective fault current"),
-                        PerformanceCriteria(code: "3.1f", description: "RCD operation"),
-                        PerformanceCriteria(code: "3.1g", description: "Phase sequence"),
-                        PerformanceCriteria(code: "3.1h", description: "Functional testing")
-                    ]
-                ),
-                LearningOutcome(
-                    number: "4",
-                    title: "Commissioning procedures",
-                    performanceCriteria: [
-                        PerformanceCriteria(code: "4.1", description: "Clarify the commissioning procedures with relevant persons on site:"),
-                        PerformanceCriteria(code: "4.1a", description: "Representatives of other services/colleagues"),
-                        PerformanceCriteria(code: "4.1b", description: "Customers/clients"),
-                        PerformanceCriteria(code: "4.2", description: "Commission circuits/equipment/components confirm functionality:"),
-                        PerformanceCriteria(code: "4.2a", description: "The installation specification"),
-                        PerformanceCriteria(code: "4.2b", description: "IET Wiring Regulations"),
-                        PerformanceCriteria(code: "4.2c", description: "Manufacturer's instructions"),
-                        PerformanceCriteria(code: "4.2d", description: "Maintenance schedules"),
-                        PerformanceCriteria(code: "4.2e", description: "Health and safety requirements")
-                    ]
-                )
-            ],
-            allowedAssessmentMethods: [.professionalDiscussion, .productEvidence]
         )
     ]
 }

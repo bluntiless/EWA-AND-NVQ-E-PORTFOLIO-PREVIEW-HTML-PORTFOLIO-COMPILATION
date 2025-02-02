@@ -9,8 +9,10 @@ struct QualificationDetailView: View {
             ForEach(qualification.units) { unit in
                 NavigationLink(destination: UnitDetailView(unit: unit)) {
                     VStack(alignment: .leading) {
-                        Text(unit.title)
+                        Text(unit.displayCode)
                             .font(.headline)
+                        Text(unit.title)
+                            .font(.subheadline)
                         ProgressView(value: unit.progress)
                             .progressViewStyle(.linear)
                             .tint(progressColor(for: unit))

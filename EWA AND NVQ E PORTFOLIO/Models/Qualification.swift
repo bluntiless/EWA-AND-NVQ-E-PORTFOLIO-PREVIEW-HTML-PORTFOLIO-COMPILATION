@@ -1,6 +1,9 @@
 import Foundation
 import Combine
 
+// Add imports for EALUnits and CityAndGuilds units
+import SwiftUI  // If needed
+
 class Qualification: Identifiable, ObservableObject {
     let id: UUID
     let code: String
@@ -20,7 +23,7 @@ class Qualification: Identifiable, ObservableObject {
         
         // Observe unit changes
         for unit in units {
-            unit.$progress  // Use published property
+            unit.$progress
                 .sink { [weak self] _ in
                     self?.updateProgress()
                 }
@@ -38,7 +41,7 @@ class Qualification: Identifiable, ObservableObject {
     }
 }
 
-// List of all available qualifications
+// Move available qualifications to a separate file or add imports
 let availableQualifications = [
     Qualification(
         code: "EWA",
@@ -50,7 +53,7 @@ let availableQualifications = [
         code: "1605",
         title: "Level 3 NVQ Diploma in Installing Electrotechnical Systems and Equipment",
         description: "EAL Level 3 NVQ Diploma in Installing Electrotechnical Systems and Equipment (1605)",
-        units: EALUnits.eal1605Units
+        units: EALUnits.nvqUnits
     ),
     Qualification(
         code: "2357",

@@ -1,6 +1,14 @@
 import Foundation
 import Combine
 
+// Add imports for required types
+import SwiftUI
+
+// Import the models
+// @_exported import struct Models.Qualification  // If using modules
+// Or just reference the files directly:
+// import the files containing these types
+
 class QualificationStore: ObservableObject {
     @Published var qualifications: [Qualification]
     private var cancellables = Set<AnyCancellable>()
@@ -18,7 +26,7 @@ class QualificationStore: ObservableObject {
                 code: "1605",
                 title: "Level 3 NVQ Diploma in Installing Electrotechnical Systems and Equipment",
                 description: "EAL Level 3 NVQ Diploma in Installing Electrotechnical Systems and Equipment (1605)",
-                units: EALUnits.eal1605Units
+                units: EALUnits.nvqUnits
             ),
             Qualification(
                 code: "2357",

@@ -72,6 +72,8 @@ class Evidence: ObservableObject, Identifiable, Codable {
     
     var isHidden: Bool = false
     
+    var lastMetadataCheck: Date?
+    
     enum ProcessingStatus: String, Codable {
         case notStarted = "Not Started"
         case uploading = "Uploading"
@@ -136,6 +138,7 @@ class Evidence: ObservableObject, Identifiable, Codable {
         case uploadProgress
         case processingStatus
         case isHidden
+        case lastMetadataCheck
     }
     
     required init(from decoder: Decoder) throws {
@@ -166,6 +169,7 @@ class Evidence: ObservableObject, Identifiable, Codable {
         sharePointUrl = try container.decodeIfPresent(String.self, forKey: .sharePointUrl)
         _fileURL = try container.decodeIfPresent(URL.self, forKey: ._fileURL)
         uploadDate = try container.decodeIfPresent(Date.self, forKey: .uploadDate)
+        lastMetadataCheck = try container.decodeIfPresent(Date.self, forKey: .lastMetadataCheck)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -196,6 +200,7 @@ class Evidence: ObservableObject, Identifiable, Codable {
         try container.encodeIfPresent(uploadDate, forKey: .uploadDate)
         try container.encode(uploadProgress, forKey: .uploadProgress)
         try container.encode(processingStatus, forKey: .processingStatus)
+        try container.encodeIfPresent(lastMetadataCheck, forKey: .lastMetadataCheck)
     }
     
     init(id: UUID = UUID(),
@@ -298,6 +303,7 @@ class Evidence: ObservableObject, Identifiable, Codable {
         assessorFeedback = metadata.assessorFeedback
         assessorName = metadata.assessorName
         assessmentDate = metadata.assessmentDate
+        lastMetadataCheck = Date()
         
         print("Update complete:")
         print("- Current Status:", assessmentStatus.rawValue)
