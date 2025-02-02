@@ -18,8 +18,7 @@ struct PortfolioPreviewView: View {
         
         let nvqUnits = [
             // NVQ 1605 Units
-            "ELTP3-01", "ELTP3-02", "ELTP3-03", 
-            "ELTP3-04", "ELTP3-05", "ELTP3-06", "ELTP3-07"
+            "001", "002", "003", "004", "005", "006", "007"
         ]
         
         return ewaUnits + nvqUnits
@@ -29,7 +28,7 @@ struct PortfolioPreviewView: View {
         VStack {
             // Unit selector with improved layout
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHGrid(rows: [GridItem(.fixed(44))], spacing: 4) {
+                LazyHGrid(rows: [GridItem(.fixed(44))], spacing: 8) {
                     ForEach(units, id: \.self) { unitCode in
                         Button(action: {
                             selectedUnit = unitCode
@@ -44,9 +43,9 @@ struct PortfolioPreviewView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 4)
+                .padding(.horizontal)
             }
-            .frame(height: 44)
+            .frame(height: 50)
             
             // Preview content
             ZStack {
@@ -75,9 +74,9 @@ struct PortfolioPreviewView: View {
     
     private func getUnitDescription(_ unitCode: String) -> String {
         if unitCode.starts(with: "NETP") {
-            return unitCode  // Shows "NETP3-01" etc.
+            return unitCode  // Keep full NETP3-XX format
         } else {
-            return unitCode.replacingOccurrences(of: "ELTP", with: "NVQ")  // Shows "NVQ3-01" etc.
+            return "NVQ \(unitCode)"  // Shows "NVQ 001" etc.
         }
     }
     
