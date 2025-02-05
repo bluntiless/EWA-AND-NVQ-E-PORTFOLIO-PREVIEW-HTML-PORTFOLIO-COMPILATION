@@ -12,6 +12,8 @@ extension EvidenceManager {
             return await generateDocumentThumbnail(from: url)
         case .photo:
             return UIImage(contentsOfFile: url.path) // Existing photo handling
+        case .pdf:
+            return generatePDFThumbnail(from: url)
         }
     }
     
@@ -47,6 +49,28 @@ extension EvidenceManager {
             print("Error generating document thumbnail: \(error)")
             return UIImage(systemName: "doc.fill")
         }
+    }
+    
+    private func generatePDFThumbnail(from url: URL) -> UIImage? {
+        guard let document = CGPDFDocument(url as CFURL),
+              let page = document.page(at: 1) else {
+            return nil
+        }
+        
+        let pageRect = page.getBoxRect(.mediaBox)
+        let renderer = UIGraphicsImageRenderer(size: pageRect.size)
+        
+        let thumbnail = renderer.image { context in
+            context.cgContext.setFillColor(UIColor.white.cgColor)
+            context.cgContext.fill(pageRect)
+            
+            context.cgContext.translateBy(x: 0, y: pageRect.size.height)
+            context.cgContext.scaleBy(x: 1.0, y: -1.0)
+            
+            context.cgContext.drawPDFPage(page)
+        }
+        
+        return thumbnail
     }
     
     func downloadFile(from sharePointURL: URL) async throws -> URL {
@@ -188,5 +212,13 @@ extension EvidenceManager {
             print("❌ File verification failed: \(error)")
             return false
         }
+    }
+    
+    private func formatEvidencePath(_ path: String) -> String {
+        // First replace slashes with hyphens
+        var formatted = path.replacingOccurrences(of: "/", with: "-")
+        // Then replace underscores with hyphens for consistency
+        formatted = formatted.replacingOccurrences(of: "_", with: "-")
+        return formatted
     }
 } 
