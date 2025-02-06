@@ -16,7 +16,7 @@ enum EALUnits {
             code: "01",  // Just the number - displayCode will add "NETP3-"
             eltCode: "EWA01",
             reference: "NETP3-01",
-            title: "Apply Health, Safety and Environmental Considerations",
+            title: "NETP3-01 Apply Health, Safety and Environmental Considerations",
             description: "Understanding and applying health and safety principles in electrical installation",
             unitType: .EWA,  // Critical: Must be .EWA for correct formatting
             creditValue: 3,
@@ -90,7 +90,7 @@ enum EALUnits {
             code: "03",  // Just the number
             eltCode: "EWA03",
             reference: "NETP3-03",
-            title: "Organise and Oversee the Electrical Work Environment",
+            title: "NETP3-03 Organise and Oversee the Electrical Work Environment",
             description: "Organizing and overseeing electrical work activities",
             unitType: .EWA,  // Changed from .performance to .EWA
             creditValue: 3,
@@ -185,7 +185,7 @@ enum EALUnits {
             code: "NETP3-04",
             eltCode: "EWA04",
             reference: "NETP3-04",
-            title: "Install Electrical Equipment",
+            title: "NETP3-04 Install Electrical Equipment",
             description: "Installing electrical systems and equipment",
             unitType: .performance,
             creditValue: 4,

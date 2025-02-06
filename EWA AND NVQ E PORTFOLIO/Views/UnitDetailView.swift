@@ -42,7 +42,7 @@ struct UnitDetailView: View {
                 }
             }
         }
-        .navigationTitle("Unit \(unit.code)")
+        .navigationTitle("Unit \(unit.reference)")
         .toolbar {
             if !selectedCriteria.isEmpty {
                 ToolbarItem(placement: .primaryAction) {

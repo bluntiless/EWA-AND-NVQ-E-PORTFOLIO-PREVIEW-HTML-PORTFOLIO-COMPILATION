@@ -71,7 +71,7 @@ struct CriteriaEvidenceView: View {
                 EvidenceUploadView(
                     evidenceType: type,
                     criteriaCode: selectedCriteria[0].code,
-                    unitCode: unit.code,
+                    unitCode: unit.reference,
                     criteriaDescription: selectedCriteria[0].description,
                     onEvidenceUploaded: { evidence in
                         evidenceManager.addEvidence(evidence)
