@@ -12,31 +12,16 @@
             <key>UTTypeConformsTo</key>
             <array>
                 <string>public.data</string>
-                <string>public.content</string>
             </array>
-            <key>UTTypeTagSpecification</key>
-            <dict>
-                <key>public.filename-extension</key>
-                <array>
-                    <string>pdf</string>
-                    <string>jpg</string>
-                    <string>jpeg</string>
-                    <string>png</string>
-                </array>
-                <key>public.mime-type</key>
-                <array>
-                    <string>application/pdf</string>
-                    <string>image/jpeg</string>
-                    <string>image/png</string>
-                </array>
-            </dict>
         </dict>
     </array>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
             <key>CFBundleTypeName</key>
-            <string>EWA Portfolio Document</string>
+            <string>EWA Portfolio</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
             <key>LSHandlerRank</key>
             <string>Owner</string>
             <key>LSItemContentTypes</key>

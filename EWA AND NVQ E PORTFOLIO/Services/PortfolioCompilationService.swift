@@ -82,6 +82,16 @@ class PortfolioCompilationService {
     }
     
     private func generatePreviewHTML(for evidence: [Evidence], in unitCode: String) -> String {
+        print("🔄 Generating preview HTML for unit: \(unitCode)")
+        
+        // Get learning outcomes first to verify we have content
+        let learningOutcomes = getUnitLearningOutcomes(for: unitCode)
+        if learningOutcomes.isEmpty {
+            print("⚠️ No learning outcomes found for unit: \(unitCode)")
+        } else {
+            print("✅ Found \(learningOutcomes.count) learning outcomes")
+        }
+        
         // Create a cache of approved evidence to maintain consistency
         let approvedEvidenceCache = NSCache<NSString, NSNumber>()
         
@@ -140,7 +150,7 @@ class PortfolioCompilationService {
                     <td class="criteria-desc">\(description)</td>
             """
             
-            // First occasion status
+            // First occasion
             if let firstEvidence = approvedEvidence.first {
                 row += """
                     <td class="evidence-box approved">
@@ -155,24 +165,22 @@ class PortfolioCompilationService {
                 """
             }
             
-            // Second occasion if required
-            if requiresTwoOccasions {
-                if let secondEvidence = approvedEvidence.dropFirst().first {
-                    row += """
-                        <td class="evidence-box approved">
-                            Approved
-                        </td>
-                    """
-                } else {
-                    row += """
-                        <td class="evidence-box pending">
-                            No Evidence
-                        </td>
-                    """
-                }
+            // Second occasion - always show this column
+            if let secondEvidence = approvedEvidence.dropFirst().first {
+                row += """
+                    <td class="evidence-box approved">
+                        Approved
+                    </td>
+                """
+            } else {
+                row += """
+                    <td class="evidence-box pending">
+                        No Evidence
+                    </td>
+                """
             }
             
-            // Complete status - only mark complete if we have enough approved evidence
+            // Complete status
             let isComplete = approvedEvidence.count >= (requiresTwoOccasions ? 2 : 1)
             row += """
                 <td class="complete-box \(isComplete ? "approved" : "")">
@@ -189,13 +197,10 @@ class PortfolioCompilationService {
                 <th class="criteria-number">Criteria</th>
                 <th class="criteria-desc">Description</th>
                 <th class="evidence-box">First Occasion</th>
+                <th class="evidence-box">Second Occasion</th>
+                <th class="complete-box">Complete</th>
+            </tr>
         """
-        
-        // Always add second occasion for core units
-        if requiresTwoOccasions {
-            tableHeaders += "<th class=\"evidence-box\">Second Occasion</th>"
-        }
-        tableHeaders += "<th class=\"complete-box\">Complete</th></tr>"
         
         // Generate the HTML with consistent styling
         var html = """
@@ -265,7 +270,6 @@ class PortfolioCompilationService {
         """
         
         // Generate tables for each learning outcome
-        let learningOutcomes = getUnitLearningOutcomes(for: unitCode)
         for (outcome, title, criteria) in learningOutcomes {
             html += """
                 <div class="learning-outcome">Learning Outcome \(outcome): \(title)</div>
@@ -286,87 +290,296 @@ class PortfolioCompilationService {
     
     // Helper function to get unit-specific learning outcomes
     private func getUnitLearningOutcomes(for unitCode: String) -> [(outcome: String, title: String, criteria: [(code: String, description: String)])] {
+        print("📝 Getting learning outcomes for unit: \(unitCode)")
+        
+        // Don't standardize the code - use it as is
         switch unitCode {
-            case "NETP3-01":
+            case "NETP3-01", "01":
+                print("✅ Matched NETP3-01")
                 return [
-                    ("01-1", "Be able to apply relevant health and safety legislation in the workplace", [
-                        ("01-1.1", "Identify which workplace health and safety procedures are relevant to the working environment and comply with their duties and obligations"),
-                        ("01-1.2", "Produce a risk assessment and method statement in accordance with organisational procedures"),
-                        ("01-1.3", "Work within the requirements of:"),
-                        ("01-1.3a", "Risk assessments"),
-                        ("01-1.3b", "Method statements"),
-                        ("01-1.3c", "Safe systems of work")
+                    ("1", "Be able to apply relevant health and safety legislation in the workplace", [
+                        ("1.1", "Identify which workplace health and safety procedures are relevant to the working environment"),
+                        ("1.2", "Produce a risk assessment and method statement in accordance with organisational procedures"),
+                        ("1.3", "Work within the requirements of:"),
+                        ("1.3a", "Risk assessments"),
+                        ("1.3b", "Method statements"),
+                        ("1.3c", "Safe systems of work")
                     ]),
-                    ("01-2", "Be able to assess the work environment for hazards", [
-                        ("01-2.1", "Identify unsafe situations and conditions and take remedial actions"),
-                        ("01-2.2", "Assess work environment & revise practices taking account of hazards:"),
-                        ("01-2.2a", "Materials"),
-                        ("01-2.2b", "Tools"),
-                        ("01-2.2c", "Equipment"),
-                        ("01-2.3", "Identify any hazards which may present a high risk and report their presence to relevant persons"),
-                        ("01-2.4", "Apply measures to control health and safety hazards"),
-                        ("01-2.5", "Select and use correct personal protective equipment")
+                    ("2", "Be able to assess the work environment for hazards", [
+                        ("2.1", "Identify unsafe situations and conditions and take remedial actions"),
+                        ("2.2", "Assess work environment & revise practices taking account of hazards"),
+                        ("2.2a", "Materials"),
+                        ("2.2b", "Tools"),
+                        ("2.2c", "Equipment"),
+                        ("2.3", "Identify hazards which may present a high risk and report to relevant persons"),
+                        ("2.4", "Apply measures to control health and safety hazards"),
+                        ("2.5", "Select and use correct personal protective equipment")
                     ]),
-                    ("01-3", "Be able to apply methods and procedures to ensure work on site is in accordance with health and safety legislation", [
-                        ("01-3.1", "Demonstrate personal conduct and behaviour within the workplace"),
-                        ("01-3.2", "Apply procedures to ensure safe use, maintenance & storage of equipment:"),
-                        ("01-3.2a", "Workplace policies (company and site)"),
-                        ("01-3.2b", "Supplier information"),
-                        ("01-3.2c", "Manufacturer's instructions"),
-                        ("01-3.3", "Comply with hazard warning, mandatory instruction and prohibition notices"),
-                        ("01-3.4", "Apply procedures to ensure safety through correct use of guards and notices"),
-                        ("01-3.5", "Use access equipment correctly:"),
-                        ("01-3.5a", "Ladder"),
-                        ("01-3.5b", "Tower scaffold or MEWP"),
-                        ("01-3.5c", "Stepladder"),
-                        ("01-3.5d", "Platform")
-                    ]),
-                    ("01-4", "Be able to work in accordance with environmental legislation", [
-                        ("01-4.1", "Apply procedures for safe handling, storing & disposal of hazardous materials:"),
-                        ("01-4.1a", "Environmental Protection Act"),
-                        ("01-4.1b", "Hazardous Waste Regulations"),
-                        ("01-4.1c", "Pollution Prevention and Control Act"),
-                        ("01-4.1d", "Control of Pollution Act"),
-                        ("01-4.1e", "Control of Noise at Work Regulations"),
-                        ("01-4.1f", "Environment Act")
+                    ("3", "Be able to apply methods and procedures to ensure work on site is in accordance with health and safety legislation", [
+                        ("3.1", "Demonstrate personal conduct and behaviour within the workplace"),
+                        ("3.2", "Apply procedures to ensure safe use, maintenance & storage of equipment"),
+                        ("3.2a", "Workplace policies"),
+                        ("3.2b", "Supplier information"),
+                        ("3.2c", "Manufacturer's instructions"),
+                        ("3.3", "Comply with hazard warning, mandatory instruction and prohibition notices"),
+                        ("3.4", "Apply procedures to ensure safety through correct use of guards and notices"),
+                        ("3.5", "Use access equipment correctly")
                     ])
                 ]
-            case "NETP3-03":
+            case "NETP3-03", "03":
+                print("✅ Matched NETP3-03")
                 return [
-                    ("03-1", "Be able to provide technical and functional information", [
-                        ("03-1.1", "Evaluate information requirements for:"),
-                        ("03-1.1a", "System operation"),
-                        ("03-1.1b", "Equipment functionality"),
-                        ("03-1.1c", "Safety requirements"),
-                        ("03-1.2", "Identify required technical information"),
-                        ("03-1.3", "Provide information professionally"),
-                        ("03-1.4", "Follow organizational procedures")
+                    ("1", "Be able to provide technical and functional information", [
+                        ("1.1", "Evaluate information requirements for:"),
+                        ("1.1a", "System operation"),
+                        ("1.1b", "Equipment functionality"),
+                        ("1.1c", "Safety requirements"),
+                        ("1.2", "Identify required technical information"),
+                        ("1.3", "Provide information professionally"),
+                        ("1.4", "Follow organizational procedures")
                     ]),
-                    ("03-2", "Be able to oversee Health and Safety", [
-                        ("03-2.1", "Produce and revise risk assessments for:"),
-                        ("03-2.1a", "Own work activities"),
-                        ("03-2.1b", "Team activities"),
-                        ("03-2.1c", "Other operatives in area"),
-                        ("03-2.2", "Implement safety monitoring procedures"),
-                        ("03-2.3", "Ensure compliance with:"),
-                        ("03-2.3a", "Health and Safety legislation"),
-                        ("03-2.3b", "Industry standards"),
-                        ("03-2.3c", "Company procedures")
+                    ("2", "Be able to oversee Health and Safety", [
+                        ("2.1", "Produce and revise risk assessments for:"),
+                        ("2.1a", "Own work activities"),
+                        ("2.1b", "Team activities"),
+                        ("2.1c", "Other operatives in area"),
+                        ("2.2", "Implement safety monitoring procedures"),
+                        ("2.3", "Ensure compliance with:"),
+                        ("2.3a", "Health and Safety legislation"),
+                        ("2.3b", "Industry standards"),
+                        ("2.3c", "Company procedures")
                     ]),
-                    ("03-3", "Be able to coordinate work activities", [
-                        ("03-3.1", "Coordinate with other workers/contractors"),
-                        ("03-3.2", "Resolve work-related issues"),
-                        ("03-3.3", "Monitor work progress"),
-                        ("03-3.4", "Report issues outside scope of responsibility")
+                    ("3", "Be able to coordinate work activities", [
+                        ("3.1", "Coordinate with other workers/contractors"),
+                        ("3.2", "Resolve work-related issues"),
+                        ("3.3", "Monitor work progress"),
+                        ("3.4", "Report issues outside scope of responsibility")
                     ]),
-                    ("03-4", "Be able to organize and monitor work", [
-                        ("03-4.1", "Organize operatives by allocating duties based on competence"),
-                        ("03-4.2", "Monitor work to ensure compliance with:"),
-                        ("03-4.2a", "Programme of work"),
-                        ("03-4.2b", "Cost effectiveness"),
-                        ("03-4.2c", "Industry working practices"),
-                        ("03-4.2d", "Health and safety requirements"),
-                        ("03-4.3", "Apply procedures when non-compliance identified")
+                    ("4", "Be able to organize and monitor work", [
+                        ("4.1", "Organize operatives by allocating duties based on competence"),
+                        ("4.2", "Monitor work to ensure compliance with:"),
+                        ("4.2a", "Programme of work"),
+                        ("4.2b", "Cost effectiveness"),
+                        ("4.2c", "Industry working practices"),
+                        ("4.2d", "Health and safety requirements"),
+                        ("4.3", "Apply procedures when non-compliance identified")
+                    ])
+                ]
+            case "ELTP3-001", "ELTP3/001":
+                print("✅ Matched ELTP3-001")
+                return [
+                    ("1", "Be able to apply relevant health and safety legislation in the workplace", [
+                        ("1.1", "Identify which workplace health and safety procedures are relevant to the working environment"),
+                        ("1.2", "Produce a risk assessment and method statement in accordance with organisational procedures"),
+                        ("1.3", "Work within the requirements of:"),
+                        ("1.3a", "Risk assessments"),
+                        ("1.3b", "Method statements"),
+                        ("1.3c", "Safe systems of work")
+                    ]),
+                    ("2", "Be able to assess the work environment for hazards", [
+                        ("2.1", "Identify unsafe situations and conditions and take remedial actions"),
+                        ("2.2", "Assess work environment & revise practices taking account of hazards:"),
+                        ("2.2a", "Materials"),
+                        ("2.2b", "Tools"),
+                        ("2.2c", "Equipment"),
+                        ("2.3", "Identify any hazards which may present a high risk and report their presence to relevant persons"),
+                        ("2.4", "Apply measures to control health and safety hazards"),
+                        ("2.5", "Select and use correct personal protective equipment")
+                    ]),
+                    ("3", "Be able to apply methods and procedures to ensure work on site is in accordance with health and safety legislation", [
+                        ("3.1", "Demonstrate personal conduct and behaviour within the workplace"),
+                        ("3.2", "Apply procedures to ensure safe use, maintenance & storage of equipment:"),
+                        ("3.2a", "Workplace policies (company and site)"),
+                        ("3.2b", "Supplier information"),
+                        ("3.2c", "Manufacturer's instructions"),
+                        ("3.3", "Comply with hazard warning, mandatory instruction and prohibition notices"),
+                        ("3.4", "Apply procedures to ensure safety through correct use of guards and notices"),
+                        ("3.5", "Use access equipment correctly:"),
+                        ("3.5a", "Ladder"),
+                        ("3.5b", "Tower scaffold or MEWP"),
+                        ("3.5c", "Stepladder"),
+                        ("3.5d", "Platform")
+                    ]),
+                    ("4", "Be able to work in accordance with environmental legislation", [
+                        ("4.1", "Apply procedures for safe handling, storing & disposal of hazardous materials:"),
+                        ("4.1a", "Environmental Protection Act"),
+                        ("4.1b", "Hazardous Waste Regulations"),
+                        ("4.1c", "Pollution Prevention and Control Act"),
+                        ("4.1d", "Control of Pollution Act"),
+                        ("4.1e", "Control of Noise at Work Regulations"),
+                        ("4.1f", "Environment Act")
+                    ])
+                ]
+            case "ELTP3/002", "ELTP3-002":  // Handle both formats
+                return [
+                    ("1", "Be able to apply environmental protection measures", [
+                        ("1.1", "Apply environmental protection measures in the workplace"),
+                        ("1.2", "Implement waste management procedures"),
+                        ("1.3", "Follow environmental legislation requirements")
+                    ]),
+                    ("2", "Be able to handle and store materials and equipment", [
+                        ("2.1", "Handle and store materials in accordance with:"),
+                        ("2.1a", "Environmental Protection Act"),
+                        ("2.1b", "Hazardous Waste Regulations"),
+                        ("2.1c", "Control of Pollution Act"),
+                        ("2.1d", "Control of Noise at Work Regulations"),
+                        ("2.1e", "WEEE Regulations")
+                    ]),
+                    ("3", "Be able to apply environmental technology systems", [
+                        ("3.1", "Provide information on environmental technology systems:"),
+                        ("3.1a", "Solar photovoltaic"),
+                        ("3.1b", "Wind energy"),
+                        ("3.1c", "Micro hydro"),
+                        ("3.1d", "Heat pumps"),
+                        ("3.1e", "Grey water recycling"),
+                        ("3.1f", "Rainwater harvesting"),
+                        ("3.1g", "Biomass heating"),
+                        ("3.1h", "Solar thermal hot water heating"),
+                        ("3.1i", "Combined heat and power (CHP)")
+                    ])
+                ]
+            case "ELTP3/003", "ELTP3-003":  // Handle both formats
+                return [
+                    ("1", "Be able to provide technical and functional information", [
+                        ("1.1", "Identify relevant people that need technical/functional information"),
+                        ("1.2", "Identify additional information required"),
+                        ("1.2a", "Health and safety information"),
+                        ("1.2b", "Isolation procedures"),
+                        ("1.2c", "Contact details for further advice"),
+                        ("1.3", "Liaise with relevant people to determine information needs"),
+                        ("1.4", "Identify appropriate technical and functional information"),
+                        ("1.5", "Provide information professionally and according to procedures")
+                    ]),
+                    ("2", "Be able to oversee health and safety", [
+                        ("2.1", "Produce risk assessments and method statements"),
+                        ("2.2", "Follow procedures that work complies with health and safety legislation")
+                    ]),
+                    ("3", "Be able to coordinate work activities", [
+                        ("3.1", "Coordinate effectively with other workers/contractors"),
+                        ("3.2", "Apply clear and accurate communication techniques")
+                    ])
+                ]
+            case "ELTP3/004", "ELTP3-004":  // Handle both formats
+                return [
+                    ("1", "Be able to prepare for installation of wiring systems and enclosures", [
+                        ("1.1", "Ensure health and safety of self and others in work location"),
+                        ("1.2", "Select and use appropriate PPE"),
+                        ("1.3", "Complete preparatory work for installation:"),
+                        ("1.3a", "Interpret installation specifications"),
+                        ("1.3b", "Select compatible materials and equipment"),
+                        ("1.3c", "Identify suitable methods and procedures"),
+                        ("1.3d", "Confirm site readiness"),
+                        ("1.3e", "Verify secure storage facilities"),
+                        ("1.3f", "Confirm safe isolation if required"),
+                        ("1.3g", "Complete risk assessment")
+                    ]),
+                    ("2", "Be able to install wiring systems and enclosures", [
+                        ("2.1", "Install cables according to specifications:"),
+                        ("2.1a", "Single core cables"),
+                        ("2.1b", "Multicore cables"),
+                        ("2.1c", "PVC/PVC flat profile"),
+                        ("2.1d", "Steel wire armoured"),
+                        ("2.1e", "Fire resistant cables"),
+                        ("2.2", "Install containment systems:"),
+                        ("2.2a", "PVC conduit"),
+                        ("2.2b", "Metal conduit"),
+                        ("2.2c", "PVC trunking"),
+                        ("2.2d", "Metal trunking"),
+                        ("2.2e", "Cable tray"),
+                        ("2.2f", "Cable basket")
+                    ]),
+                    ("3", "Be able to confirm quality of completed installation", [
+                        ("3.1", "Verify installations meet requirements:"),
+                        ("3.1a", "Correct type and fit for purpose"),
+                        ("3.1b", "Compliance with BS 7671"),
+                        ("3.1c", "Meet installation specifications"),
+                        ("3.1d", "Follow manufacturer instructions")
+                    ])
+                ]
+            case "ELTP3/005", "ELTP3-005":  // Handle both formats
+                return [
+                    ("1", "Be able to prepare for termination and connection", [
+                        ("1.1", "Carry out safe isolation procedures"),
+                        ("1.2", "Select appropriate tools and equipment"),
+                        ("1.3", "Verify materials are correct and undamaged"),
+                        ("1.4", "Confirm work area is safe and ready")
+                    ]),
+                    ("2", "Be able to terminate and connect conductors", [
+                        ("2.1", "Terminate and connect cables:"),
+                        ("2.1a", "Single core cables"),
+                        ("2.1b", "Multicore cables"),
+                        ("2.1c", "PVC/PVC flat profile"),
+                        ("2.1d", "MICC"),
+                        ("2.1e", "Fire resistant cables"),
+                        ("2.1f", "Steel wire armoured"),
+                        ("2.1g", "Data cables"),
+                        ("2.2", "Connect to electrical equipment:"),
+                        ("2.2a", "Isolators/switches"),
+                        ("2.2b", "Socket outlets"),
+                        ("2.2c", "Distribution boards"),
+                        ("2.2d", "Consumer units"),
+                        ("2.2e", "Luminaires"),
+                        ("2.2f", "Control equipment")
+                    ]),
+                    ("3", "Be able to inspect and test completed connections", [
+                        ("3.1", "Verify terminations are electrically sound"),
+                        ("3.2", "Check mechanical security of connections"),
+                        ("3.3", "Complete required documentation")
+                    ])
+                ]
+            case "ELTP3/006", "ELTP3-006":  // Handle both formats
+                return [
+                    ("1", "Be able to prepare for inspection and testing", [
+                        ("1.1", "Carry out safe isolation procedures"),
+                        ("1.2", "Select appropriate test instruments"),
+                        ("1.3", "Verify test instruments are calibrated"),
+                        ("1.4", "Complete risk assessment for testing")
+                    ]),
+                    ("2", "Be able to carry out inspection", [
+                        ("2.1", "Complete visual inspection to BS 7671"),
+                        ("2.2", "Record inspection results accurately"),
+                        ("2.3", "Identify and report non-compliant items")
+                    ]),
+                    ("3", "Be able to test installations", [
+                        ("3.1", "Perform tests in correct sequence:"),
+                        ("3.1a", "Continuity testing"),
+                        ("3.1b", "Insulation resistance"),
+                        ("3.1c", "Polarity"),
+                        ("3.1d", "Earth fault loop impedance"),
+                        ("3.1e", "RCD operation"),
+                        ("3.1f", "Functional testing"),
+                        ("3.2", "Record test results accurately"),
+                        ("3.3", "Compare results with required values")
+                    ]),
+                    ("4", "Be able to complete documentation", [
+                        ("4.1", "Complete electrical installation certificates"),
+                        ("4.2", "Complete inspection schedules"),
+                        ("4.3", "Complete test result schedules"),
+                        ("4.4", "Provide documentation to relevant persons")
+                    ])
+                ]
+            case "ELTP3/007", "ELTP3-007":  // Handle both formats
+                return [
+                    ("1", "Be able to prepare for fault diagnosis", [
+                        ("1.1", "Gather information about reported faults"),
+                        ("1.2", "Select appropriate test instruments"),
+                        ("1.3", "Carry out safe isolation procedures"),
+                        ("1.4", "Complete risk assessment")
+                    ]),
+                    ("2", "Be able to diagnose faults", [
+                        ("2.1", "Use logical fault finding procedures"),
+                        ("2.2", "Select appropriate test methods"),
+                        ("2.3", "Interpret test results correctly"),
+                        ("2.4", "Identify fault locations"),
+                        ("2.5", "Record findings accurately")
+                    ]),
+                    ("3", "Be able to rectify faults", [
+                        ("3.1", "Select appropriate repair methods"),
+                        ("3.2", "Obtain required replacement parts"),
+                        ("3.3", "Repair or replace faulty items"),
+                        ("3.4", "Test repaired circuits"),
+                        ("3.5", "Restore supply safely"),
+                        ("3.6", "Complete required documentation")
                     ])
                 ]
             case "NETP3-04":
@@ -565,6 +778,8 @@ class PortfolioCompilationService {
                     ])
                 ]
             default:
+                print("⚠️ No match found for unit code: \(unitCode)")
+                print("⚠️ Available cases: NETP3-01, 01, NETP3-03, 03, ELTP3-001, ELTP3/001, etc.")
                 return []
         }
     }
@@ -627,12 +842,53 @@ class PortfolioCompilationService {
         // You'll need to use your existing SharePoint service to handle this
         throw PortfolioCompilationError.fileOperationError(.accessDenied)
     }
+    
+    private func standardizeUnitCode(_ code: String) -> String {
+        // First standardize the format
+        var formatted = code
+        
+        if formatted.contains("ELTP3") {
+            // Handle ELTP3 format
+            formatted = formatted.replacingOccurrences(of: "/", with: "-")
+            formatted = formatted.replacingOccurrences(of: "_", with: "-")
+            
+            // Extract the number portion
+            if let range = formatted.range(of: "ELTP3[/-]?\\d+", options: .regularExpression) {
+                let numberPart = formatted[range].filter { $0.isNumber }
+                return "ELTP3-\(numberPart.padLeft(toLength: 3, withPad: "0"))"
+            }
+        } else if formatted.contains("NETP3") || formatted.matches("^\\d{1,2}$") {
+            // Handle NETP3 format and plain numbers (which should be NETP3)
+            formatted = formatted.replacingOccurrences(of: "/", with: "-")
+            formatted = formatted.replacingOccurrences(of: "_", with: "-")
+            
+            // If it's just a number, add NETP3 prefix
+            if formatted.matches("^\\d{1,2}$") {
+                return "NETP3-\(formatted.padLeft(toLength: 2, withPad: "0"))"
+            }
+            
+            // If it already has NETP3 prefix, ensure correct format
+            if formatted.hasPrefix("NETP3") {
+                let numberPart = formatted.filter { $0.isNumber }
+                return "NETP3-\(numberPart.padLeft(toLength: 2, withPad: "0"))"
+            }
+        }
+        
+        return formatted
+    }
 }
 
 // Add safe array access extension
 extension Array {
     subscript(safe index: Index) -> Element? {
         return indices.contains(index) ? self[index] : nil
+    }
+}
+
+// Add helper extension for regex matching
+extension String {
+    func matches(_ regex: String) -> Bool {
+        return self.range(of: regex, options: .regularExpression) != nil
     }
 } 
 

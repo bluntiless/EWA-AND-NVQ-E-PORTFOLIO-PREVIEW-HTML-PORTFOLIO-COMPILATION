@@ -407,7 +407,7 @@ enum EALUnits {
         Unit(
             code: "NETP3-07",
             eltCode: "EWA07",
-            reference: "ENTP3-07",
+            reference: "NETP3-07",
             title: "Diagnose and Correct Electrical Faults",
             description: "Diagnosing and rectifying faults in electrical installations",
             unitType: .performance,

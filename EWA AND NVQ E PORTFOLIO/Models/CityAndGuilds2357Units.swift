@@ -7,7 +7,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "311",
         eltCode: "ELTP01",
-        reference: "R6022596",
+        reference: "311",
         title: "Applying Health and Safety legislation and working practices",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .CityAndGuilds,
@@ -74,7 +74,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "312",
         eltCode: "ELTP02",
-        reference: "H6022599",
+        reference: "312",
         title: "Applying environmental legislation, working practices and the principles of environmental technology systems",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .performance,
@@ -129,7 +129,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "313",
         eltCode: "ELTP03",
-        reference: "K6022605",
+        reference: "313",
         title: "Overseeing and organising the work environment",
         description: "Electrical installation",
         unitType: .performance,
@@ -237,7 +237,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "315",
         eltCode: "ELTP04",
-        reference: "R6022792",
+        reference: "315",
         title: "Planning, preparing and installing wiring systems and associated equipment in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .performance,
@@ -440,7 +440,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "316",
         eltCode: "ELTP05",
-        reference: "H6022828",
+        reference: "316",
         title: "Terminating and connecting conductors, cables and flexible cords in electrical systems",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .performance,
@@ -532,7 +532,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "317",
         eltCode: "ELTP06",
-        reference: "K6022703",
+        reference: "317",
         title: "Inspecting, testing, commissioning and certifying electrotechnical systems and equipment in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .performance,
@@ -586,7 +586,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "318",
         eltCode: "ELTP07",
-        reference: "M6022704",
+        reference: "318",
         title: "Diagnosing and correcting electrical faults in electrical systems and equipment in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .performance,
@@ -638,7 +638,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "399",
         eltCode: "ELT OC1",
-        reference: "R6022503",
+        reference: "399",
         title: "Electrotechnical occupational competence",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .performance,
@@ -682,7 +682,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "601",
         eltCode: "ELTK01",
-        reference: "H6022523",
+        reference: "601",
         title: "Understanding Health and Safety legislation, practices and procedures",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -726,7 +726,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "602",
         eltCode: "ELTK02",
-        reference: "M6022525",
+        reference: "602",
         title: "Understanding environmental legislation, working practices and the principles of environmental technology systems",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -761,7 +761,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "603",
         eltCode: "ELTK03",
-        reference: "J6022532",
+        reference: "603",
         title: "Understanding the practices and procedures for overseeing and organising the work environment",
         description: "Electrical Installation",
         unitType: .knowledge,
@@ -796,7 +796,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "604",
         eltCode: "ELTK04a",
-        reference: "A6022561",
+        reference: "604",
         title: "Understanding the principles of planning and selection for the installation of electrotechnical equipment and systems in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -916,7 +916,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "605",
         eltCode: "ELTK04",
-        reference: "T6022560",
+        reference: "605",
         title: "Understanding the practices and procedures for the preparation and installation of wiring systems and electrotechnical equipment in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -951,7 +951,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "606",
         eltCode: "ELTK05",
-        reference: "J6022563",
+        reference: "606",
         title: "Understanding the principles, practices and legislation for the termination and connection of conductors, cables and cords in electrical systems",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -986,7 +986,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "607",
         eltCode: "ELTK06",
-        reference: "D6022567",
+        reference: "607",
         title: "Understanding principles, practices and legislation for the inspection, testing, commissioning and certification of electrotechnical systems and equipment in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -1021,7 +1021,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "608",
         eltCode: "ELTK07",
-        reference: "R6022579",
+        reference: "608",
         title: "Understanding the principles, practices and legislation for diagnosing and correcting electrical faults in electrotechnical systems and equipment in buildings, structures and the environment",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
@@ -1056,7 +1056,7 @@ let cityAndGuilds2357Units: [Unit] = [
     Unit(
         code: "609",
         eltCode: "ELTK08",
-        reference: "A6022589",
+        reference: "609",
         title: "Understanding the electrical principles associated with the design, building, installation and maintenance of electrical equipment and systems",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .knowledge,
