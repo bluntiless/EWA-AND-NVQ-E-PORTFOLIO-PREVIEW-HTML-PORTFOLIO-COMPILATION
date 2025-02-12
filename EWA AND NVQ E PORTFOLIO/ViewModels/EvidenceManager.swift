@@ -60,15 +60,17 @@ class EvidenceManager: ObservableObject {
         isLoading = true
         do {
             var items = try await storageManager.fetchEvidence()
-            // Load hidden states without checking status
+            
+            // Load hidden states from UserDefaults
             if let data = UserDefaults.standard.data(forKey: hiddenStateKey),
-               let hiddenItems = try? JSONDecoder().decode([UUID: Bool].self, from: data) {
-                for (id, isHidden) in hiddenItems {
-                    if let index = items.firstIndex(where: { $0.id == id }) {
-                        var item = items[index]
-                        item.isHidden = isHidden
-                        items[index] = item
+               let hiddenItems = try? JSONDecoder().decode([String: Bool].self, from: data) {
+                // Apply hidden states to items
+                items = items.map { item in
+                    var updatedItem = item
+                    if let isHidden = hiddenItems[item.id.uuidString] {
+                        updatedItem.isHidden = isHidden
                     }
+                    return updatedItem
                 }
             }
             
@@ -175,54 +177,60 @@ class EvidenceManager: ObservableObject {
     }
     
     func refreshEvidenceStatus() async {
-        print("\n=== Starting Evidence Status Refresh ===")
-        
-        for evidence in evidenceItems {
-            if let sharePointUrl = evidence.sharePointUrl {
-                // Try up to 3 times with increasing delays
-                for attempt in 1...3 {
-                    do {
-                        // Wait for available request token
-                        try await waitForRequestToken()
-                        
-                        // Exponential backoff delay on retry
-                        if attempt > 1 {
-                            let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
-                            try await Task.sleep(nanoseconds: delay)
-                        }
-                        
-                        let wasHidden = evidence.isHidden
-                        let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
-                        
-                        await MainActor.run {
-                            if let index = self.evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
-                                var updatedEvidence = evidence
-                                updatedEvidence.updateAssessmentInfo(from: metadata)
-                                updatedEvidence.isHidden = wasHidden
-                                self.evidenceItems[index] = updatedEvidence
-                                
-                                Task {
-                                    try? await self.storageManager.updateEvidence(updatedEvidence)
-                                }
-                            }
-                        }
-                        
-                        // Success - break retry loop
-                        break
-                        
-                    } catch {
-                        print("❌ Attempt \(attempt) failed for \(evidence.id): \(error)")
-                        if attempt == 3 {
-                            print("❌ All attempts failed for \(evidence.id)")
-                        }
-                    }
+        print("Starting evidence status refresh")
+        do {
+            // First get current hidden states
+            let hiddenStates = Dictionary(uniqueKeysWithValues: 
+                evidenceItems.map { ($0.id.uuidString, $0.isHidden) }
+            )
+            
+            let updatedItems = try await storageManager.fetchEvidence()
+            var modifiedItems = [Evidence]()
+            
+            for item in updatedItems {
+                var modifiedItem = item
+                
+                // Restore hidden state from our saved states
+                if let wasHidden = hiddenStates[item.id.uuidString] {
+                    modifiedItem.isHidden = wasHidden
+                }
+                
+                // Skip metadata refresh for hidden items
+                if modifiedItem.isHidden {
+                    modifiedItems.append(modifiedItem)
+                    continue
+                }
+                
+                guard let sharePointUrl = modifiedItem.sharePointUrl else { 
+                    print("No SharePoint URL for item")
+                    modifiedItems.append(modifiedItem)
+                    continue 
+                }
+                
+                do {
+                    try await TeamsManager.shared.authenticate()
+                    print("Fetching metadata for: \(sharePointUrl)")
+                    let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
+                    print("Received metadata: \(metadata)")
+                    
+                    // Update assessment info while explicitly preserving hidden state
+                    modifiedItem.updateAssessmentInfo(from: metadata)
+                    
+                    try await storageManager.updateEvidence(modifiedItem)
+                    modifiedItems.append(modifiedItem)
+                } catch {
+                    print("Error fetching metadata: \(error)")
+                    modifiedItems.append(modifiedItem)
                 }
             }
-        }
-        
-        await MainActor.run {
-            objectWillChange.send()
-            updateProgress()
+            
+            await MainActor.run {
+                self.evidenceItems = modifiedItems
+                // Ensure hidden states are saved after refresh
+                self.saveHiddenStateToUserDefaults()
+            }
+        } catch {
+            print("Error refreshing evidence status: \(error)")
         }
     }
     
@@ -331,23 +339,69 @@ class EvidenceManager: ObservableObject {
     
     func getApprovedEvidence(for unitCode: String) -> [Evidence] {
         evidenceItems.filter { evidence in
-            let isApproved = evidence.assessmentStatus == .approved
-            return isApproved && evidence.unitCode == unitCode
+            evidence.unitCode == unitCode &&
+            evidence.assessmentStatus == .approved
+        }
+    }
+    
+    func standardizeUnitCode(_ code: String) -> String {
+        // Handle special cases first
+        if code == "01" {
+            return "NETP3-01"
+        }
+        if code == "03" {
+            return "NETP3-03"
+        }
+        
+        // If it's already in the correct format, return as is
+        if code.contains("-") {
+            return code
+        }
+        
+        // Add standard prefix if missing
+        if code.count == 2 && Int(code) != nil {
+            return "NETP3-\(code)"
+        }
+        
+        return code
+    }
+    
+    func hasEvidenceForUnit(_ unitCode: String) -> Bool {
+        let standardizedCode = standardizeUnitCode(unitCode)
+        return evidenceItems.contains { evidence in
+            let evidenceUnitCode = standardizeUnitCode(evidence.unitCode)
+            return evidenceUnitCode == standardizedCode
         }
     }
     
     func getApprovedEvidenceCount(for unitCode: String) -> Int {
-        evidenceItems.filter { 
-            $0.unitCode == unitCode && 
-            !$0.isHidden && 
-            $0.assessmentStatus == .approved 
-        }.count
+        // First check if unit has any evidence
+        guard hasEvidenceForUnit(unitCode) else {
+            print("Unit \(unitCode): No evidence found")
+            return 0
+        }
+        
+        let standardizedCode = standardizeUnitCode(unitCode)
+        
+        // Filter evidence for this unit and count only approved items
+        let unitEvidence = evidenceItems.filter { evidence in
+            let evidenceUnitCode = standardizeUnitCode(evidence.unitCode)
+            return evidenceUnitCode == standardizedCode && 
+                   evidence.assessmentStatus == .approved
+        }
+        
+        let approvedCriteriaCodes = Set(unitEvidence.flatMap { evidence in
+            evidence.criteriaArray
+        })
+        
+        print("Unit \(unitCode): Found \(approvedCriteriaCodes.count) approved criteria")
+        return approvedCriteriaCodes.count
     }
     
     func getTotalEvidenceCount(for unitCode: String) -> Int {
+        // Count all evidence regardless of hidden state
         evidenceItems.filter { 
-            $0.unitCode == unitCode && 
-            !$0.isHidden 
+            $0.unitCode == unitCode
         }.count
     }
     
@@ -456,14 +510,18 @@ class EvidenceManager: ObservableObject {
     }
     
     private func saveHiddenStateToUserDefaults() {
-        // Create dictionary with string representation of UUIDs as keys
+        print("Saving hidden states to UserDefaults")
         let hiddenItems = Dictionary(
             evidenceItems.map { ($0.id.uuidString, $0.isHidden) },
-            uniquingKeysWith: { first, _ in first }  // Keep first value in case of duplicates
+            uniquingKeysWith: { first, _ in first }
         )
         
         if let data = try? JSONEncoder().encode(hiddenItems) {
             UserDefaults.standard.set(data, forKey: hiddenStateKey)
+            UserDefaults.standard.synchronize() // Force immediate save
+            
+            // Debug log
+            print("Hidden states saved: \(hiddenItems)")
         }
     }
     
@@ -534,35 +592,23 @@ class EvidenceManager: ObservableObject {
     
     @MainActor
     func updateEvidence(_ evidence: Evidence) async throws {
-        print("\n=== Updating Evidence Status ===")
-        print("ID:", evidence.id)
-        print("Previous Status:", evidence.assessmentStatus.rawValue)
+        // Preserve hidden state
+        let existingEvidence = evidenceItems.first(where: { $0.id == evidence.id })
+        var updatedEvidence = evidence
+        updatedEvidence.isHidden = existingEvidence?.isHidden ?? evidence.isHidden
         
-        if let sharePointUrl = evidence.sharePointUrl {
-            do {
-                try await TeamsManager.shared.authenticate()
-                let metadata = try await TeamsManager.shared.fetchEvidenceMetadata(from: sharePointUrl)
-                
-                // Create updated evidence with new status
-                var updatedEvidence = evidence
-                updatedEvidence.updateAssessmentInfo(from: metadata)
-                
-                // Update storage and UI
-                try await storageManager.updateEvidence(updatedEvidence)
-                
-                if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
-                    evidenceItems[index] = updatedEvidence
-                    print("New Status:", updatedEvidence.assessmentStatus.rawValue)
-                }
-                
-                // Trigger UI updates
-                objectWillChange.send()
-                updateProgress()
-            } catch {
-                print("❌ Failed to update evidence status:", error)
-                throw error
+        try await storageManager.updateEvidence(updatedEvidence)
+        
+        await MainActor.run {
+            if let index = evidenceItems.firstIndex(where: { $0.id == evidence.id }) {
+                evidenceItems[index] = updatedEvidence
+            } else {
+                evidenceItems.append(updatedEvidence)
             }
         }
+        
+        // Save hidden state to UserDefaults
+        saveHiddenState()
     }
     
     @MainActor
@@ -620,37 +666,106 @@ class EvidenceManager: ObservableObject {
         return updatedEvidence
     }
     
-    func getEvidenceForCriteria(_ criteriaCode: String) -> [Evidence] {
-        evidenceItems.filter { evidence in
-            evidence.criteriaArray.contains(criteriaCode) ||
-            evidence.associatedCriteria.contains(criteriaCode)
+    // Add helper method for consistent unit code normalization
+    private func normalizeUnitCode(_ code: String) -> String {
+        return code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+    }
+    
+    // 1. Base evidence filtering method
+    func getEvidenceForCriteria(_ criteriaCode: String, forUnit unitCode: String? = nil) -> [Evidence] {
+        print("\n=== Getting Evidence for Criteria: \(criteriaCode) for Unit: \(unitCode ?? "any") ===")
+        return evidenceItems.filter { evidence in
+            // Strict unit matching - only if unit code is specified
+            let matchesUnit = if let requiredUnit = unitCode {
+                evidence.unitCode == requiredUnit
+            } else {
+                true // Allow any unit only if no specific unit requested
+            }
+            
+            let matchesCriteria = evidence.criteriaArray.contains(criteriaCode)
+            
+            if matchesUnit && matchesCriteria {
+                print("Matching Evidence Found: \(evidence.id) for Unit: \(evidence.unitCode)")
+            }
+            return matchesUnit && matchesCriteria
         }
     }
     
+    // 2. Progress calculation for a specific unit
     func getProgressForUnit(_ unitCode: String) -> Double {
-        let evidenceForUnit = evidenceItems.filter { $0.unitCode == unitCode && !$0.isHidden }
-        let approvedEvidence = evidenceForUnit.filter { $0.assessmentStatus == .approved }
+        guard let unit = getUnit(withCode: unitCode) else {
+            print("No unit found for code: \(unitCode)")
+            return 0.0
+        }
+
+        print("\n=== Calculating Progress for Unit: \(unitCode) ===")
         
-        // Avoid division by zero
-        guard !evidenceForUnit.isEmpty else { return 0.0 }
-        return Double(approvedEvidence.count) / Double(evidenceForUnit.count)
+        let allCriteria = unit.learningOutcomes.flatMap { $0.performanceCriteria }
+        print("Total criteria for unit: \(allCriteria.count)")
+        
+        // Get evidence specifically for this unit
+        let evidenceForUnit = allCriteria.flatMap { criteria -> [Evidence] in
+            let evidence = getEvidenceForCriteria(criteria.code, forUnit: unitCode) // Explicitly pass unit code
+            return evidence.filter { $0.assessmentStatus == .approved }
+        }
+
+        if evidenceForUnit.isEmpty {
+            print("No approved evidence found for unit \(unitCode). Setting progress to 0.")
+            return 0.0
+        }
+
+        let completedCriteria = allCriteria.filter { criteria in
+            let hasApprovedEvidence = evidenceForUnit.contains { 
+                $0.criteriaArray.contains(criteria.code) && 
+                $0.unitCode == unitCode // Double-check unit code
+            }
+            print("Criteria \(criteria.code) completed: \(hasApprovedEvidence)")
+            return hasApprovedEvidence
+        }
+
+        let progress = Double(completedCriteria.count) / Double(allCriteria.count)
+        print("Final progress for unit \(unitCode): \(progress) (\(completedCriteria.count)/\(allCriteria.count))")
+        return progress
+    }
+    
+    // 3. Detailed unit progress calculation
+    func getUnitProgress(_ unit: Unit) -> Double {
+        print("\n=== Calculating Progress for Unit: \(unit.code) ===")
+        
+        let allCriteria = unit.learningOutcomes.flatMap { $0.performanceCriteria }
+        print("Total criteria count: \(allCriteria.count)")
+        
+        let completedCriteria = allCriteria.filter { criteria in
+            print("\nChecking criteria: \(criteria.code)")
+            let evidence = getEvidenceForCriteria(criteria.code, forUnit: unit.code)
+            
+            // Debug each piece of evidence
+            evidence.forEach { ev in
+                print("Found evidence: \(ev.id)")
+                print("  Unit: \(ev.unitCode)")
+                print("  Hidden: \(ev.isHidden)")
+                print("  Status: \(ev.assessmentStatus)")
+            }
+            
+            // Count approved evidence regardless of hidden state
+            let isCompleted = evidence.contains { ev in 
+                ev.assessmentStatus == .approved 
+            }
+            print("Criteria \(criteria.code) completed: \(isCompleted)")
+            return isCompleted
+        }
+        
+        print("Completed criteria count: \(completedCriteria.count)")
+        let progress = allCriteria.isEmpty ? 0.0 : Double(completedCriteria.count) / Double(allCriteria.count)
+        print("Final progress: \(progress)")
+        
+        return progress
     }
     
     func getUnit(withCode code: String) -> Unit? {
         // Search in both unit collections
         return cityAndGuilds2357Units.first { $0.code == code } ?? 
                EALUnits.ewaUnits.first { $0.code == code }
-    }
-    
-    // Add progress calculation without modifying existing code
-    func getUnitProgress(_ unit: Unit) -> Double {
-        let allCriteria = unit.learningOutcomes.flatMap { $0.performanceCriteria }
-        let completedCriteria = allCriteria.filter { criteria in
-            let evidence = getEvidenceForCriteria(criteria.code)
-            return evidence.contains { $0.assessmentStatus == .approved }
-        }
-        
-        return allCriteria.isEmpty ? 0 : Double(completedCriteria.count) / Double(allCriteria.count)
     }
     
     // Add debug logging to track status changes
@@ -664,6 +779,26 @@ class EvidenceManager: ObservableObject {
             evidenceItems[index].assessmentStatus = status
             print("Status Updated Successfully")
         }
+    }
+    
+    func getPendingEvidenceCount(for unitCode: String) -> Int {
+        // First check if unit has any evidence
+        guard hasEvidenceForUnit(unitCode) else {
+            print("Unit \(unitCode): No evidence found")
+            return 0
+        }
+        
+        let standardizedCode = standardizeUnitCode(unitCode)
+        
+        let unitEvidence = evidenceItems.filter { evidence in
+            let evidenceUnitCode = standardizeUnitCode(evidence.unitCode)
+            return evidenceUnitCode == standardizedCode && 
+                   evidence.assessmentStatus == .pending
+        }
+        
+        let pendingCriteriaCodes = Set(unitEvidence.flatMap { $0.criteriaArray })
+        print("Unit \(unitCode): Found \(pendingCriteriaCodes.count) pending criteria")
+        return pendingCriteriaCodes.count
     }
 } 
 

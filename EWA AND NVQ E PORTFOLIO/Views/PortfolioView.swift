@@ -52,14 +52,15 @@ struct PortfolioView: View {
                     backButton
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
+                    HStack(spacing: 16) {
                         if let url = compiledPortfolioURL {
                             Button {
                                 showingPreview = true
                             } label: {
-                                HStack {
+                                HStack(spacing: 8) {
                                     Image(systemName: "doc.text.magnifyingglass")
-                                    Text("View Evidence")
+                                        .font(.system(size: 18))
+                                    Text("View")
                                 }
                                 .foregroundColor(.blue)
                             }
@@ -68,10 +69,12 @@ struct PortfolioView: View {
                         Button {
                             showingCompilationSheet = true
                         } label: {
-                            HStack {
+                            HStack(spacing: 8) {
                                 Image(systemName: "folder.badge.plus")
-                                Text("Compile Portfolio")
+                                    .font(.system(size: 18))
+                                Text("Compile")
                             }
+                            .foregroundColor(.blue)
                         }
                     }
                 }
@@ -123,7 +126,6 @@ struct PortfolioView: View {
                             }
                         }
                 }
-                .interactiveDismissDisabled(false)
                 .presentationDragIndicator(.visible)
             }
         }

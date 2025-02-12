@@ -8,11 +8,11 @@ let cityAndGuilds2357Units: [Unit] = [
         code: "311",
         eltCode: "ELTP01",
         reference: "311",
-        title: "Applying Health and Safety legislation and working practices",
+        title: "Understanding Health and Safety Legislation and Working Practices",
         description: "Installing and maintaining electrotechnical systems and equipment",
         unitType: .CityAndGuilds,
-        creditValue: 10,
-        glh: 3,
+        creditValue: 12,
+        glh: 100,
         startDate: DateHelper.getStandardDateRange().start,
         endDate: DateHelper.getStandardDateRange().end,
         learningOutcomes: [
@@ -20,217 +20,122 @@ let cityAndGuilds2357Units: [Unit] = [
                 number: "1",
                 title: "Know health and safety legislation",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "1.1", description: "Identify which workplace health and safety procedures are relevant to the working environment and comply with their duties and obligations as defined by current legislation and organisational procedures"),
-                    PerformanceCriteria(code: "1.2", description: "Produce a risk assessment and method statement in accordance with organisational procedures and the limits of their responsibility"),
-                    PerformanceCriteria(code: "1.3", description: "Work within the requirements of:"),
-                    PerformanceCriteria(code: "1.3a", description: "• Risk assessments"),
-                    PerformanceCriteria(code: "1.3b", description: "• Method statements"),
-                    PerformanceCriteria(code: "1.3c", description: "• Safe systems of work"),
+                    PerformanceCriteria(code: "1.1", description: "Identify relevant health and safety legislation"),
+                    PerformanceCriteria(code: "1.2", description: "Explain the purpose of legislation in maintaining safety"),
+                    PerformanceCriteria(code: "1.3", description: "State employer and employee responsibilities"),
+                    PerformanceCriteria(code: "1.4", description: "Explain how legislation is enforced")
                 ]
             ),
             LearningOutcome(
                 number: "2",
-                title: "Know how to handle hazardous situations",
+                title: "Know how to assess workplace risks",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "2.1", description: "Identify unsafe situations and conditions and take remedial actions"),
-                    PerformanceCriteria(code: "2.2", description: "Assess the work environment and revise work practices accordingly to take into account hazards which could cause harm, including the handling of potentially hazardous:"),
-                    PerformanceCriteria(code: "2.2a", description: "• Materials"),
-                    PerformanceCriteria(code: "2.2b", description: "• Tools"),
-                    PerformanceCriteria(code: "2.2c", description: "• Equipment"),
-                    PerformanceCriteria(code: "2.3", description: "Identify any hazards which may present a high risk and report their presence to relevant persons who have overall responsibility for health and safety in the workplace"),
-                    PerformanceCriteria(code: "2.4", description: "Apply measures to control health and safety hazards in accordance with the limits of their capabilities and job responsibility"),
-                    PerformanceCriteria(code: "2.5", description: "Select and use correct personal protective equipment and protection measures to ensure the health and safety of themselves and others in the work environment"),
+                    PerformanceCriteria(code: "2.1", description: "Identify common workplace hazards"),
+                    PerformanceCriteria(code: "2.2", description: "Explain methods of risk assessment"),
+                    PerformanceCriteria(code: "2.3", description: "Describe ways to control workplace risks"),
+                    PerformanceCriteria(code: "2.4", description: "State procedures for reporting hazards")
                 ]
             ),
             LearningOutcome(
                 number: "3",
-                title: "Know how to behave around the workplace",
+                title: "Know safe working practices",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "3.1", description: "Demonstrate personal conduct and behaviour around the workplace, to ensure that the health and safety of themselves and others is not endangered"),
-                    PerformanceCriteria(code: "3.2", description: "Apply procedures to ensure the safe use, maintenance and storage of tools, plant and equipment as stipulated in:"),
-                    PerformanceCriteria(code: "3.2a", description: "• Workplace policies (company and site)"),
-                    PerformanceCriteria(code: "3.2b", description: "• Supplier information"),
-                    PerformanceCriteria(code: "3.2c", description: "• Manufacturer's instructions"),
-                    PerformanceCriteria(code: "3.3", description: "Comply with hazard warning, mandatory instruction and prohibition notices"),
-                    PerformanceCriteria(code: "3.4", description: "Apply procedures to ensure the safety of the work location through the correct use of guards and notices"),
-                    PerformanceCriteria(code: "3.5", description: "Use access equipment correctly"),
-                ]
-            ),
-            LearningOutcome(
-                number: "4",
-                title: "Know how to respond to emergencies",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "4.1", description: "Demonstrate the correct procedures to follow in the event of injury to themselves or others"),
-                    PerformanceCriteria(code: "4.1a", description: "• Application of basic first aid procedures"),
-                    PerformanceCriteria(code: "4.1b", description: "• Notification of emergency services"),
-                    PerformanceCriteria(code: "4.1c", description: "• Reporting of incidents")
+                    PerformanceCriteria(code: "3.1", description: "Describe safe manual handling techniques"),
+                    PerformanceCriteria(code: "3.2", description: "Explain safe use of work equipment"),
+                    PerformanceCriteria(code: "3.3", description: "State requirements for PPE"),
+                    PerformanceCriteria(code: "3.4", description: "Describe emergency procedures")
                 ]
             )
         ],
-        allowedAssessmentMethods: [.directObservation, .productEvidence, .workRecords]
+        allowedAssessmentMethods: [.professionalDiscussion, .productEvidence]
     ),
 
-    // Unit 312
+    // Unit 312 - Performance Unit
     Unit(
-        code: "312",
+        code: "2357-312",
         eltCode: "ELTP02",
         reference: "312",
-        title: "Applying environmental legislation, working practices and the principles of environmental technology systems",
-        description: "Installing and maintaining electrotechnical systems and equipment",
-        unitType: .performance,
-        creditValue: 10,
-        glh: 3,
+        title: "Installing and Testing Electrical Systems",
+        description: "Installation and testing of electrical systems and equipment",
+        unitType: .CityAndGuilds,
+        creditValue: 12,
+        glh: 100,
         startDate: DateHelper.getStandardDateRange().start,
         endDate: DateHelper.getStandardDateRange().end,
         learningOutcomes: [
             LearningOutcome(
                 number: "1",
-                title: "Know environmental legislation",
+                title: "Installation Planning",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "1.1", description: "Demonstrate workplace procedures for the safe handling, storage and disposal of hazardous materials and products, in accordance with any of the following:"),
-                    PerformanceCriteria(code: "1.1a", description: "• Environmental protection act"),
-                    PerformanceCriteria(code: "1.1b", description: "• The hazardous waste regulations"),
-                    PerformanceCriteria(code: "1.1c", description: "• Pollution prevention and control act"),
-                    PerformanceCriteria(code: "1.1d", description: "• Control of pollution act"),
-                    PerformanceCriteria(code: "1.1e", description: "• The control of noise at work regulations"),
-                    PerformanceCriteria(code: "1.1f", description: "• Packaging (essential requirements) regulations"),
-                    PerformanceCriteria(code: "1.1g", description: "• Environment act"),
-                    PerformanceCriteria(code: "1.1h", description: "• The waste electrical and electronic equipment regulations"),
+                    PerformanceCriteria(code: "1.1", description: "Plan installation work using specifications"),
+                    PerformanceCriteria(code: "1.2", description: "Select appropriate tools and equipment"),
+                    PerformanceCriteria(code: "1.3", description: "Risk assess installation activities")
                 ]
             ),
             LearningOutcome(
                 number: "2",
-                title: "Know how to use environmentally friendly materials",
+                title: "Installation Methods",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "2.1", description: "Demonstrate prefabrication and installation methods which can help to reduce material wastage"),
-                    PerformanceCriteria(code: "2.2", description: "Identify and use environmentally friendly materials, products and procedures for the installation and maintenance of electrotechnical systems and equipment"),
+                    PerformanceCriteria(code: "2.1", description: "Install wiring systems to specifications"),
+                    PerformanceCriteria(code: "2.2", description: "Install electrical equipment"),
+                    PerformanceCriteria(code: "2.3", description: "Apply safe isolation procedures")
                 ]
             ),
             LearningOutcome(
                 number: "3",
-                title: "Know environmental technology systems",
+                title: "Testing and Commissioning",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "3.1a", description: "• Solar photovoltaic"),
-                    PerformanceCriteria(code: "3.1b", description: "• Wind energy"),
-                    PerformanceCriteria(code: "3.1c", description: "• Micro hydro"),
-                    PerformanceCriteria(code: "3.1d", description: "• Heat pumps"),
-                    PerformanceCriteria(code: "3.1e", description: "• Combined heat and power (chp) including micro chp"),
-                    PerformanceCriteria(code: "3.1f", description: "• Grey water recycling"),
-                    PerformanceCriteria(code: "3.1g", description: "• Rainwater harvesting"),
-                    PerformanceCriteria(code: "3.1h", description: "• Biomass heating"),
-                    PerformanceCriteria(code: "3.1i", description: "• Solar thermal hot water heating")
+                    PerformanceCriteria(code: "3.1", description: "Complete installation testing"),
+                    PerformanceCriteria(code: "3.2", description: "Commission installed systems"),
+                    PerformanceCriteria(code: "3.3", description: "Complete documentation")
                 ]
             )
         ],
-        allowedAssessmentMethods: [.directObservation, .productEvidence, .workRecords]
+        allowedAssessmentMethods: [.directObservation, .productEvidence]
     ),
 
-    // Unit 313
+    // Unit 313 - Performance Unit
     Unit(
-        code: "313",
+        code: "2357-313",
         eltCode: "ELTP03",
         reference: "313",
-        title: "Overseeing and organising the work environment",
-        description: "Electrical installation",
-        unitType: .performance,
-        creditValue: 10,
-        glh: 3,
+        title: "Fault Diagnosis and Rectification",
+        description: "Diagnosing and correcting electrical faults",
+        unitType: .CityAndGuilds,
+        creditValue: 12,
+        glh: 100,
         startDate: DateHelper.getStandardDateRange().start,
         endDate: DateHelper.getStandardDateRange().end,
         learningOutcomes: [
             LearningOutcome(
                 number: "1",
-                title: "Know how to liaise with relevant people",
+                title: "Fault Diagnosis",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "1.1", description: "Identify the relevant people (such as customers/ clients) that need to be supplied with technical and functional information"),
-                    PerformanceCriteria(code: "1.2", description: "Identify any additional information that may also be required"),
-                    PerformanceCriteria(code: "1.3", description: "Liaise with relevant people to determine the information they require to ensure that systems, equipment or components can be operated safely and effectively"),
-                    PerformanceCriteria(code: "1.4", description: "Identify appropriate technical and functional information that is required for the work activity"),
-                    PerformanceCriteria(code: "1.5", description: "Provide information in a timely, courteous and professional manner in accordance with organisational procedures"),
-                ]
-            ),
-            LearningOutcome(
-                number: "1.2",
-                title: "Know additional information required",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "1.2a", description: "• Health and safety information"),
-                    PerformanceCriteria(code: "1.2b", description: "• Isolation procedures for products/equipment in case of emergencies"),
-                    PerformanceCriteria(code: "1.2c", description: "• Appropriate person's address or contact details for further advice or help"),
+                    PerformanceCriteria(code: "1.1", description: "Gather fault information"),
+                    PerformanceCriteria(code: "1.2", description: "Use diagnostic techniques"),
+                    PerformanceCriteria(code: "1.3", description: "Identify fault location")
                 ]
             ),
             LearningOutcome(
                 number: "2",
-                title: "Know how to produce risk assessments and method statements",
+                title: "Fault Rectification",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "2.1", description: "Produce risk assessments and method statements, to cover their own work and others working the area (colleagues and other operatives) in accordance with their level of responsibility"),
-                    PerformanceCriteria(code: "2.2", description: "Follow procedures to confirm that work is being completed in accordance with health and safety legislation and industry standards"),
+                    PerformanceCriteria(code: "2.1", description: "Plan repair work"),
+                    PerformanceCriteria(code: "2.2", description: "Replace faulty components"),
+                    PerformanceCriteria(code: "2.3", description: "Test repaired circuits")
                 ]
             ),
             LearningOutcome(
                 number: "3",
-                title: "Know how to co-ordinate with other workers/contractors",
+                title: "Documentation",
                 performanceCriteria: [
-                    PerformanceCriteria(code: "3.1", description: "Comply with approved procedures to ensure effective co-ordination with other workers/contractors, including steps to resolve issues which are outside the scope of their job role"),
-                    PerformanceCriteria(code: "3.2", description: "Apply communication techniques that are clear, accurate and appropriate to the situation"),
-                ]
-            ),
-            LearningOutcome(
-                number: "4",
-                title: "Know how to organise operatives",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "4.1", description: "Organise operatives by allocating duties and responsibilities to make the best use of their competence"),
-                    PerformanceCriteria(code: "4.2", description: "Monitor the work of operatives to ensure it is in accordance with:"),
-                    PerformanceCriteria(code: "4.2b", description: "• Programme of work"),
-                    PerformanceCriteria(code: "4.2c", description: "• Health and safety requirements"),
-                    PerformanceCriteria(code: "4.2d", description: "• Cost effectiveness"),
-                    PerformanceCriteria(code: "4.3", description: "Apply the correct procedures when a non compliance is identified during the completion of work activities"),
-                ]
-            ),
-            LearningOutcome(
-                number: "5",
-                title: "Know how to produce a programme of work",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "5.1", description: "Produce a programme of work from the work specification, including requirements for the following:"),
-                    PerformanceCriteria(code: "5.1a", description: "• Estimate of the amount of time required for completion of the work"),
-                    PerformanceCriteria(code: "5.1b", description: "• Liaison with other trades where necessary"),
-                    PerformanceCriteria(code: "5.2", description: "Communicate with others clearly and concisely"),
-                    PerformanceCriteria(code: "5.3", description: "Identify situations when it is necessary to liaise with other relevant parties to resolve issues which are outside the scope of their job role"),
-                ]
-            ),
-            LearningOutcome(
-                number: "6",
-                title: "Know how to manage resources",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "6.1", description: "Demonstrate procedures for organising provision of resources"),
-                    PerformanceCriteria(code: "6.1a", description: "• Materials"),
-                    PerformanceCriteria(code: "6.1b", description: "• Components"),
-                    PerformanceCriteria(code: "6.1c", description: "• Plant"),
-                    PerformanceCriteria(code: "6.1d", description: "• Equipment"),
-                    PerformanceCriteria(code: "6.1e", description: "• Labour"),
-                    PerformanceCriteria(code: "6.1f", description: "• Tools"),
-                    PerformanceCriteria(code: "6.1g", description: "• Measuring and test instruments"),
-                ]
-            ),
-            LearningOutcome(
-                number: "6.2",
-                title: "Know how to confirm materials are suitable",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "6.2a", description: "• The right type"),
-                    PerformanceCriteria(code: "6.2b", description: "• Fit for purpose"),
-                    PerformanceCriteria(code: "6.2c", description: "• In the correct quantity"),
-                    PerformanceCriteria(code: "6.2d", description: "• Suitable for work to be completed cost efficiently"),
-                ]
-            ),
-            LearningOutcome(
-                number: "6.3",
-                title: "Know how to deliver resources on time",
-                performanceCriteria: [
-                    PerformanceCriteria(code: "6.3", description: "Apply procedures to ensure that resources are delivered on time and confirm that they are undamaged at the point of delivery"),
-                    PerformanceCriteria(code: "6.4", description: "Demonstrate procedures which ensure the safe and effective storage of materials, tools and equipment in the work location")
+                    PerformanceCriteria(code: "3.1", description: "Record fault details"),
+                    PerformanceCriteria(code: "3.2", description: "Document repair work"),
+                    PerformanceCriteria(code: "3.3", description: "Update maintenance records")
                 ]
             )
         ],
-        allowedAssessmentMethods: [.directObservation, .productEvidence, .workRecords]
+        allowedAssessmentMethods: [.directObservation, .productEvidence]
     ),
 
     // Unit 315

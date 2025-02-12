@@ -19,46 +19,38 @@ struct ProgressDetailView: View {
 }
 
 private struct UnitProgressRow: View {
-    let unit: Unit
     @EnvironmentObject var evidenceManager: EvidenceManager
+    let unit: Unit
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var approvedProgress: Double {
         let approved = evidenceManager.getApprovedEvidenceCount(for: unit.code)
-        
-        // Special handling for Health & Safety unit
-        if unit.code == "HSE" { // Assuming "HSE" is the code for Health & Safety unit
-            // Cap at 50% if only one observation is approved
-            return Double(min(approved, 2)) / 2.0  // 2 observations required
-        }
-        
-        return Double(approved) / Double(max(1, evidenceManager.getTotalEvidenceCount(for: unit.code)))
+        let total = getTotalRequiredCriteria(for: unit.code)
+        print("Progress calculation for \(unit.code)")
+        print("Approved: \(approved)")
+        print("Total: \(total)")
+        return Double(approved) / Double(max(1, total))
     }
     
     var pendingProgress: Double {
-        let pendingCount = evidenceManager.getTotalEvidenceCount(for: unit.code) - 
-                          evidenceManager.getApprovedEvidenceCount(for: unit.code)
-        
-        // Special handling for Health & Safety unit
-        if unit.code == "HSE" {
-            let approved = evidenceManager.getApprovedEvidenceCount(for: unit.code)
-            return approved >= 2 ? 0 : 0.5 // Show 50% pending if not fully complete
-        }
-        
-        return Double(pendingCount) / Double(max(1, evidenceManager.getTotalEvidenceCount(for: unit.code)))
+        let pending = evidenceManager.getPendingEvidenceCount(for: unit.code)
+        let total = getTotalRequiredCriteria(for: unit.code)
+        print("Pending: \(pending)")
+        return Double(pending) / Double(max(1, total))
     }
     
     var progressText: String {
         let approved = evidenceManager.getApprovedEvidenceCount(for: unit.code)
-        
-        // Special handling for Health & Safety unit
-        if unit.code == "HSE" {
-            let percentage = (Double(min(approved, 2)) / 2.0) * 100
-            return String(format: "%.0f%%", percentage)
-        }
-        
-        let total = evidenceManager.getTotalEvidenceCount(for: unit.code)
+        let total = getTotalRequiredCriteria(for: unit.code)
         let percentage = (Double(approved) / Double(max(1, total))) * 100
-        return String(format: "%.0f%%", percentage)
+        return String(format: "%.0f%%", min(percentage, 100))
+    }
+    
+    private func getTotalRequiredCriteria(for unitCode: String) -> Int {
+        if let unit = evidenceManager.getUnit(withCode: unitCode) {
+            return unit.learningOutcomes.flatMap { $0.performanceCriteria }.count
+        }
+        return 20 // Fallback default
     }
     
     var body: some View {
@@ -68,29 +60,31 @@ private struct UnitProgressRow: View {
             
             HStack(spacing: 12) {
                 // Progress Bar Container
-                ZStack(alignment: .leading) {
-                    // Background
-                    Capsule()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 16)
-                    
-                    // Pending Progress (Yellow)
-                    if pendingProgress > 0 {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // Background
                         Capsule()
-                            .fill(Color.yellow)
-                            .frame(maxWidth: .infinity)
+                            .fill(Color.gray.opacity(0.2))
                             .frame(height: 16)
-                    }
-                    
-                    // Approved Progress (Green)
-                    if approvedProgress > 0 {
-                        Capsule()
-                            .fill(Color.green)
-                            .frame(width: UIScreen.main.bounds.width * 0.6 * approvedProgress)
-                            .frame(height: 16)
+                        
+                        // Pending Progress (Yellow)
+                        if pendingProgress > 0 {
+                            Capsule()
+                                .fill(Color.yellow)
+                                .frame(width: geometry.size.width * min(pendingProgress, 1.0))
+                                .frame(height: 16)
+                        }
+                        
+                        // Approved Progress (Green)
+                        if approvedProgress > 0 {
+                            Capsule()
+                                .fill(Color.green)
+                                .frame(width: geometry.size.width * min(approvedProgress, 1.0))
+                                .frame(height: 16)
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .frame(height: 16)
                 
                 // Percentage Text
                 Text(progressText)
