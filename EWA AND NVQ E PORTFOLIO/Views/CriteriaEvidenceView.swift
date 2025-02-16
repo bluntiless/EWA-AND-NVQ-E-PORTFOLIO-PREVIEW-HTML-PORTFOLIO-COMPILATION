@@ -4,9 +4,10 @@ struct CriteriaEvidenceView: View {
     let unit: Unit
     let selectedCriteria: [PerformanceCriteria]
     @StateObject private var viewModel: CriteriaEvidenceViewModel
-    @StateObject private var evidenceManager = EvidenceManager()
+    @EnvironmentObject var evidenceManager: EvidenceManager
     @State private var showingUploadSheet = false
     @State private var selectedEvidenceType: Evidence.EvidenceType?
+    @State private var isUploading = false
     
     init(unit: Unit, selectedCriteria: [PerformanceCriteria]) {
         self.unit = unit
@@ -42,8 +43,7 @@ struct CriteriaEvidenceView: View {
                     icon: "camera",
                     color: .blue
                 ) {
-                    selectedEvidenceType = .photo
-                    showingUploadSheet = true
+                    handlePickerSelection(.photo)
                 }
                 
                 UploadButton(
@@ -51,8 +51,7 @@ struct CriteriaEvidenceView: View {
                     icon: "video",
                     color: .green
                 ) {
-                    selectedEvidenceType = .video
-                    showingUploadSheet = true
+                    handlePickerSelection(.video)
                 }
                 
                 UploadButton(
@@ -60,26 +59,57 @@ struct CriteriaEvidenceView: View {
                     icon: "doc",
                     color: .orange
                 ) {
-                    selectedEvidenceType = .document
-                    showingUploadSheet = true
+                    handlePickerSelection(.document)
                 }
             }
             .padding()
         }
         .sheet(isPresented: $showingUploadSheet) {
             if let type = selectedEvidenceType {
-                EvidenceUploadView(
-                    evidenceType: type,
-                    criteriaCode: selectedCriteria[0].code,
-                    unitCode: unit.reference,
-                    criteriaDescription: selectedCriteria[0].description,
-                    onEvidenceUploaded: { evidence in
-                        evidenceManager.addEvidence(evidence)
-                    },
-                    selectedCriteria: selectedCriteria
-                )
-                .environmentObject(evidenceManager)
+                NavigationView {
+                    EvidenceUploadView(
+                        evidenceType: type,
+                        criteriaCode: selectedCriteria[0].code,
+                        unitCode: unit.reference,
+                        criteriaDescription: selectedCriteria[0].description,
+                        onEvidenceUploaded: { evidence in
+                            print("📤 Evidence upload completed")
+                            evidenceManager.addEvidence(evidence)
+                            showingUploadSheet = false
+                        },
+                        selectedCriteria: selectedCriteria
+                    )
+                    .environmentObject(evidenceManager)
+                }
+                .onAppear {
+                    print("🔄 Sheet View appeared with type: \(type)")
+                }
+            } else {
+                EmptyView()
             }
+        }
+        .onChange(of: showingUploadSheet) { oldValue, newValue in
+            print("📱 Sheet presentation changed: \(oldValue) -> \(newValue)")
+        }
+        .onChange(of: selectedEvidenceType) { oldValue, newValue in
+            print("📎 Evidence type changed: \(String(describing: oldValue)) -> \(String(describing: newValue))")
+        }
+    }
+    
+    private func handlePickerSelection(_ type: Evidence.EvidenceType) {
+        print("🎯 handlePickerSelection called with type: \(type)")
+        
+        // Reset state before presenting new picker
+        selectedEvidenceType = nil
+        showingUploadSheet = false
+        print("🔄 State reset completed")
+        
+        // Small delay to ensure clean state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            print("⏱️ Delayed presentation starting")
+            selectedEvidenceType = type
+            showingUploadSheet = true
+            print("✅ Sheet presentation completed")
         }
     }
 }

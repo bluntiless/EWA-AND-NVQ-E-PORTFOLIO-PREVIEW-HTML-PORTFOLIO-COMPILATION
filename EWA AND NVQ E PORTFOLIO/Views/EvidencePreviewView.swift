@@ -10,6 +10,7 @@ struct EvidencePreviewView: View {
     @State private var previewImage: UIImage?
     @State private var isLoading = true
     @State private var isRefreshing = false
+    @State private var loadingMessage = "Loading evidence..."
     
     init(evidence: Evidence) {
         self.evidence = evidence
@@ -17,151 +18,192 @@ struct EvidencePreviewView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Evidence Preview Section
-                Group {
-                    switch evidence.type {
-                    case .photo:
-                        if isLoading {
-                            ProgressView()
-                        } else if let image = previewImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(maxHeight: 300)
-                                .cornerRadius(12)
-                        } else {
-                            Image(systemName: "photo")
-                                .font(.system(size: 60))
-                                .foregroundColor(.gray)
-                                .frame(height: 200)
-                        }
-                    case .video:
-                        if let sharePointUrl = evidence.sharePointUrl {
-                            VideoPreviewView(evidence: evidence, evidenceManager: evidenceManager)
-                                .frame(height: 300)
-                                .cornerRadius(12)
-                        }
-                    case .document:
-                        if let sharePointUrl = evidence.sharePointUrl {
-                            DocumentPreviewView(evidence: evidence, evidenceManager: evidenceManager)
-                        }
-                    case .audio:
-                        if let url = evidence.resolvedFileURL {
-                            AudioPlayerView(url: url)
-                                .frame(height: 100)
-                                .padding()
-                        }
-                    }
+        Group {
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text(loadingMessage)
+                        .foregroundColor(.secondary)
                 }
-                .padding(.horizontal)
-                
-                // Status Section with immediate updates
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Status:")
-                        .font(.headline)
-                    HStack {
-                        Image(systemName: evidence.statusDisplayInfo.icon)
-                            .foregroundColor(evidence.statusDisplayInfo.color)
-                        Text(evidence.displayStatus)
-                    }
-                }
-                
-                // Assessment Details - Using ViewModel
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text("Assessment Status:")
-                            .font(.headline)
-                        Text(viewModel.assessmentStatus.displayName)
-                            .foregroundColor(viewModel.assessmentStatus.color)
-                            .bold()
-                    }
-                    
-                    if let feedback = viewModel.assessorFeedback, !feedback.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Assessor Feedback:")
-                                .font(.headline)
-                            Text(feedback)
-                                .padding()
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
-                        }
-                    }
-                    
-                    if let assessor = viewModel.assessorName {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Assessed by:")
-                                .font(.headline)
-                            Text(assessor)
-                        }
-                    }
-                    
-                    if let date = viewModel.assessmentDate {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Assessment Date:")
-                                .font(.headline)
-                            Text(date.formatted(date: .long, time: .shortened))
-                        }
-                    }
-                    
-                    // Update criteria display
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Associated Criteria:")
-                            .font(.headline)
-                        Text(evidence.displayCriteriaCode)
-                            .padding(.horizontal)
-                    }
-                    
-                    // Refresh Button
-                    Button(action: {
-                        Task {
-                            isRefreshing = true
-                            await viewModel.refreshMetadata()
-                            do {
-                                try await evidenceManager.updateEvidence(evidence)
-                                // Force UI update for all views
-                                await evidenceManager.loadInitialData()
-                            } catch {
-                                print("Failed to update evidence: \(error)")
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Evidence Preview Section
+                        Group {
+                            switch evidence.type {
+                            case .photo:
+                                if let image = previewImage {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxHeight: 300)
+                                        .cornerRadius(12)
+                                        .onAppear {
+                                            print("📸 Photo preview appeared")
+                                        }
+                                } else {
+                                    Image(systemName: "photo")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.gray)
+                                        .frame(height: 200)
+                                        .onAppear {
+                                            print("⚠️ No preview image available")
+                                        }
+                                }
+                            case .video:
+                                if let sharePointUrl = evidence.sharePointUrl {
+                                    VideoPreviewView(evidence: evidence, evidenceManager: evidenceManager)
+                                        .frame(height: 300)
+                                        .cornerRadius(12)
+                                        .onAppear {
+                                            print("🎥 Video preview appeared")
+                                        }
+                                }
+                            case .document:
+                                if let sharePointUrl = evidence.sharePointUrl {
+                                    DocumentPreviewView(evidence: evidence, evidenceManager: evidenceManager)
+                                        .onAppear {
+                                            print("📄 Document preview appeared")
+                                        }
+                                }
+                            case .audio:
+                                if let url = evidence.resolvedFileURL {
+                                    AudioPlayerView(url: url)
+                                        .frame(height: 100)
+                                        .padding()
+                                }
                             }
-                            isRefreshing = false
                         }
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.clockwise")
-                            Text("Refresh Status")
+                        .padding(.horizontal)
+                        
+                        // Status Section with immediate updates
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Status:")
+                                .font(.headline)
+                            HStack {
+                                Image(systemName: evidence.statusDisplayInfo.icon)
+                                    .foregroundColor(evidence.statusDisplayInfo.color)
+                                Text(evidence.displayStatus)
+                            }
                         }
-                        .foregroundColor(.blue)
+                        
+                        // Assessment Details - Using ViewModel
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Text("Assessment Status:")
+                                    .font(.headline)
+                                Text(viewModel.assessmentStatus.displayName)
+                                    .foregroundColor(viewModel.assessmentStatus.color)
+                                    .bold()
+                            }
+                            
+                            if let feedback = viewModel.assessorFeedback, !feedback.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Assessor Feedback:")
+                                        .font(.headline)
+                                    Text(feedback)
+                                        .padding()
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                }
+                            }
+                            
+                            if let assessor = viewModel.assessorName {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Assessed by:")
+                                        .font(.headline)
+                                    Text(assessor)
+                                }
+                            }
+                            
+                            if let date = viewModel.assessmentDate {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Assessment Date:")
+                                        .font(.headline)
+                                    Text(date.formatted(date: .long, time: .shortened))
+                                }
+                            }
+                            
+                            // Update criteria display
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Associated Criteria:")
+                                    .font(.headline)
+                                Text(evidence.displayCriteriaCode)
+                                    .padding(.horizontal)
+                            }
+                            
+                            // Refresh Button
+                            Button(action: {
+                                Task {
+                                    isRefreshing = true
+                                    await viewModel.refreshMetadata()
+                                    do {
+                                        try await evidenceManager.updateEvidence(evidence)
+                                        // Force UI update for all views
+                                        await evidenceManager.loadInitialData()
+                                    } catch {
+                                        print("Failed to update evidence: \(error)")
+                                    }
+                                    isRefreshing = false
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.clockwise")
+                                    Text("Refresh Status")
+                                }
+                                .foregroundColor(.blue)
+                            }
+                            .disabled(!viewModel.canRefresh || isRefreshing)
+                            .padding(.top)
+                        }
+                        .padding()
                     }
-                    .disabled(!viewModel.canRefresh || isRefreshing)
-                    .padding(.top)
                 }
-                .padding()
             }
         }
-        .onAppear {
-            viewModel.setEvidenceManager(evidenceManager)
-            loadPreviewImage()
-            Task {
+        .task {
+            print("🔄 Starting evidence preview load")
+            
+            // Force a brief delay to ensure view is ready
+            try? await Task.sleep(nanoseconds: 500_000_000)  // 0.5 seconds
+            
+            do {
+                print("📥 Loading preview content")
+                
+                // Initialize view model first
+                viewModel.setEvidenceManager(evidenceManager)
+                
+                // Load metadata before showing content
+                print("🔍 Refreshing metadata")
                 await viewModel.refreshMetadata()
-                do {
-                    try await evidenceManager.updateEvidence(evidence)
-                    // Refresh all evidence on appear
-                    await evidenceManager.loadInitialData()
-                } catch {
-                    print("Failed to update evidence: \(error)")
+                
+                // Load preview content
+                loadPreviewImage()
+                
+                // Update evidence after content is loaded
+                try await evidenceManager.updateEvidence(evidence)
+                await evidenceManager.loadInitialData()
+                
+                print("✅ Evidence preview loaded successfully")
+                
+                // Finally set loading to false
+                await MainActor.run {
+                    isLoading = false
                 }
+            } catch {
+                print("❌ Error in preview load: \(error)")
+                loadingMessage = "Error: \(error.localizedDescription)"
             }
         }
         .onChange(of: viewModel.assessmentStatus) { oldValue, newValue in
+            print("📊 Assessment status changed: \(oldValue) -> \(newValue)")
             Task {
                 do {
                     try await evidenceManager.updateEvidence(evidence)
-                    // Ensure all views are updated
                     await evidenceManager.loadInitialData()
+                    print("✅ Evidence updated after status change")
                 } catch {
-                    print("Failed to update evidence: \(error)")
+                    print("❌ Failed to update evidence after status change: \(error)")
                 }
             }
         }

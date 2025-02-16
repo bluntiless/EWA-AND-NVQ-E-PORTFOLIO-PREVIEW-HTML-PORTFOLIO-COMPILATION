@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import PDFKit
 import AVKit
+import UIKit
 
 struct AddEvidenceView: View {
     @EnvironmentObject var evidenceManager: EvidenceManager
@@ -20,15 +21,55 @@ struct AddEvidenceView: View {
     @State private var failedUploads: [String] = []
     @State private var showErrorAlert = false
     @State private var errorMessage: String?
+    @State private var isViewLoaded = false
+    @State private var isLoading = true
 
     var body: some View {
-        VStack {
-            photoPickerButton
-            if isUploading {
-                uploadingProgress
+        Group {
+            if isLoading {
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text("Preparing picker...")
+                        .foregroundColor(.secondary)
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        isLoading = false
+                    }
+                }
+            } else {
+                VStack {
+                    photoPickerButton
+                    if isUploading {
+                        uploadingProgress
+                    }
+                    filePreviewScrollView
+                }
             }
-            filePreviewScrollView
         }
+        .task {
+            if !isViewLoaded {
+                isViewLoaded = true
+                resetState()
+            }
+        }
+        .onDisappear {
+            cleanup()
+        }
+    }
+
+    private func resetState() {
+        guard !isUploading else { return }
+        
+        selectedItems = []
+        selectedImages = []
+        selectedVideos.forEach { $0.pause() }
+        selectedVideos = []
+        selectedPDFUrls = []
+        uploadProgress = 0
+        currentlyUploadingItem = nil
+        failedUploads = []
+        isLoading = true
     }
 
     private var photoPickerButton: some View {
@@ -39,8 +80,11 @@ struct AddEvidenceView: View {
                 .foregroundColor(.blue)
         }
         .onChange(of: selectedItems) { _, newItems in
-            handleSelectedItems(newItems)
+            Task {
+                await handleSelectedItems(newItems)
+            }
         }
+        .disabled(isUploading)
     }
 
     private var uploadingProgress: some View {
@@ -175,36 +219,37 @@ struct AddEvidenceView: View {
         }
     }
 
-    private func handleSelectedItems(_ newItems: [PhotosPickerItem]) {
-        Task {
-            var itemsToUpload: [Any] = []
-            
-            for item in newItems {
-                if let data = try? await item.loadTransferable(type: Data.self) {
-                    if let image = UIImage(data: data) {
-                        await MainActor.run {
-                            selectedImages.append(image)
-                        }
-                        itemsToUpload.append(image)
-                    } else if let url = try? await item.loadTransferable(type: URL.self) {
-                        if url.pathExtension.lowercased() == "pdf" {
-                            await MainActor.run {
-                                selectedPDFUrls.append(url)
-                            }
-                            itemsToUpload.append(url)
-                        } else {
-                            let player = AVPlayer(url: url)
-                            await MainActor.run {
-                                selectedVideos.append(player)
-                            }
-                            itemsToUpload.append(url)
-                        }
+    private func handleSelectedItems(_ items: [PhotosPickerItem]) async {
+        await MainActor.run {
+            selectedImages = []
+            selectedVideos = []
+            selectedPDFUrls = []
+        }
+        
+        for item in items {
+            do {
+                if let data = try await item.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
+                        selectedImages.append(image)
                     }
                 }
+            } catch {
+                print("Error loading item: \(error)")
             }
-            
-            // Start upload process
-            await uploadEvidence(items: itemsToUpload)
         }
+    }
+
+    private func cleanup() {
+        selectedItems = []
+        selectedImages = []
+        selectedVideos.forEach { $0.pause() }
+        selectedVideos = []
+        selectedPDFUrls = []
+        isUploading = false
+        uploadProgress = 0
+        currentlyUploadingItem = nil
+        isLoading = true
+        isViewLoaded = false
     }
 }
