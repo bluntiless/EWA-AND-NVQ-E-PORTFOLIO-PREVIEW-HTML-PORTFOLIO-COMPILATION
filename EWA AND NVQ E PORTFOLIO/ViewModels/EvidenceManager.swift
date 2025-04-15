@@ -48,7 +48,7 @@ class EvidenceManager: ObservableObject {
     
     private func saveHiddenState() {
         let hiddenItems = Dictionary(uniqueKeysWithValues: 
-            evidenceItems.map { ($0.id, $0.isHidden) }
+            evidenceItems.map { ($0.id.uuidString, $0.isHidden) }
         )
         if let data = try? JSONEncoder().encode(hiddenItems) {
             UserDefaults.standard.set(data, forKey: hiddenStateKey)
@@ -179,10 +179,11 @@ class EvidenceManager: ObservableObject {
     func refreshEvidenceStatus() async {
         print("Starting evidence status refresh")
         do {
-            // First get current hidden states
-            let hiddenStates = Dictionary(uniqueKeysWithValues: 
-                evidenceItems.map { ($0.id.uuidString, $0.isHidden) }
-            )
+            // First get current hidden states safely
+            var hiddenStates = [String: Bool]()
+            for item in evidenceItems {
+                hiddenStates[item.id.uuidString] = item.isHidden
+            }
             
             let updatedItems = try await storageManager.fetchEvidence()
             var modifiedItems = [Evidence]()
@@ -511,10 +512,13 @@ class EvidenceManager: ObservableObject {
     
     private func saveHiddenStateToUserDefaults() {
         print("Saving hidden states to UserDefaults")
-        let hiddenItems = Dictionary(
-            evidenceItems.map { ($0.id.uuidString, $0.isHidden) },
-            uniquingKeysWith: { first, _ in first }
-        )
+        
+        // Create a dictionary from evidence items with their UUID strings as keys,
+        // ensuring we don't have duplicate keys by using a dictionary with unique keys
+        var hiddenItems = [String: Bool]()
+        for item in evidenceItems {
+            hiddenItems[item.id.uuidString] = item.isHidden
+        }
         
         if let data = try? JSONEncoder().encode(hiddenItems) {
             UserDefaults.standard.set(data, forKey: hiddenStateKey)
